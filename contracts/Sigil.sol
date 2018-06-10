@@ -21,8 +21,8 @@ pragma solidity ^0.4.18;
 
 ///* Truffle format
 //import 'zeppelin-solidity/contracts/token/ERC20/MintableToken.sol';
-import 'openzeppelin-solidity/contracts/token/ERC20/MintableToken.sol';
-import 'openzeppelin-solidity/contracts/ownership/HasNoEther.sol';
+import "openzeppelin-solidity/contracts/token/ERC20/MintableToken.sol";
+import "openzeppelin-solidity/contracts/ownership/HasNoEther.sol";
 
 
 
@@ -148,7 +148,7 @@ contract Sigil is MintableToken, HasNoEther {
         // You can only stake as many tokens as you have
         require(_value <= balances[msg.sender]);
         // You can only stake tokens if you have not already staked tokens
-        //require(stakeBalances[msg.sender].initialStakeBalance == 0);
+        require(stakeBalances[msg.sender].initialStakeBalance == 0);
 
         // Subtract stake amount from regular token balance
         balances[msg.sender] = balances[msg.sender].sub(_value);
@@ -171,12 +171,27 @@ contract Sigil is MintableToken, HasNoEther {
         return true;
     }
 
+    function getStakingGains(uint _now) external view returns (uint) {
+        require(stakeBalances[msg.sender].initialStakeBalance > 0);
+        uint _timePassedSinceStake = _now.sub(stakeBalances[msg.sender].initialStakeTime);
+        return calculateStakeGains(_timePassedSinceStake);
+    }
+
+    function getCurrentTime() view returns (uint) {
+        return now;
+    }
+
+    function getInitialStakingTime() view returns (uint) {
+        return stakeBalances[msg.sender].initialStakeTime;
+    }
+
     /// @dev allows users to reclaim any staked tokens
     /// @return bool on success
-    function unstake(uint256 amount, bytes data) external returns (bool success) {
+    function unstake() external returns (bool) {
+
         /// Sanity checks:
         // require that there was some amount vested
-        require(stakeBalances[msg.sender].initialStakeBalance > amount);
+        require(stakeBalances[msg.sender].initialStakeBalance > 0);
         // require that time has elapsed
         require(now > stakeBalances[msg.sender].initialStakeTime);
 
@@ -184,7 +199,7 @@ contract Sigil is MintableToken, HasNoEther {
         uint _timePassedSinceStake = now.sub(stakeBalances[msg.sender].initialStakeTime);
 
         // Calculate tokens to mint
-        uint _tokensToMint = calculateStakeGains(_timePassedSinceStake, amount);
+        uint _tokensToMint = calculateStakeGains(_timePassedSinceStake);
 
         // Add the original stake back to the user's balance
         balances[msg.sender] += stakeBalances[msg.sender].initialStakeBalance;
@@ -192,16 +207,7 @@ contract Sigil is MintableToken, HasNoEther {
         // Subtract stake balance from totalSigilStaked
         totalSigilStaked -= stakeBalances[msg.sender].initialStakeBalance;
 
-        // Mint the new tokens; the new tokens are added to the user's balance
-        if (stakeBalances[msg.sender].stakeSplitAddress > 0)
-        {
-            // Splitting stake, so mint half to sender and half to stakeSplitAddress
-            mint(msg.sender, _tokensToMint.div(2));
-            mint(stakeBalances[msg.sender].stakeSplitAddress, _tokensToMint.div(2));
-        } else {
-            // Not spliting stake; mint all new tokens and give them to msg.sender
-            mint(msg.sender, _tokensToMint);
-        }
+        mint(msg.sender, _tokensToMint);
 
         // Fire an event to tell the world of the newly vested tokens
         Vest(msg.sender, stakeBalances[msg.sender].stakeSplitAddress, stakeBalances[msg.sender].initialStakeBalance, _tokensToMint);
@@ -216,46 +222,34 @@ contract Sigil is MintableToken, HasNoEther {
     }
 
     /// @dev Helper function to claimStake that modularizes the minting via staking calculation
-    function calculateStakeGains(uint _timePassedSinceStake, uint _amount) view private returns (uint mintTotal) {
+    function calculateStakeGains(uint _timePassedSinceStake) view private returns (uint mintTotal) {
         // Store seconds in a day (need it in variable to use SafeMath)
-        uint _secondsPerDay = 86400;
+  //uint _secondsPerDay = 86400;
         uint _finalStakePercentage;     // store our stake percentage at the time of stake claim
         uint _stakePercentageAverage;   // store our calculated average minting rate ((initial+final) / 2)
         uint _finalMintRate;            // store our calculated final mint rate (in Sigil-per-second)
         uint _tokensToMint = 0;         // store number of new tokens to be minted
-        uint _stakeWithdrawalPercentageAmount;
-        uint _initialWithdrawalPercentageAmount;
 
         // Determine the amount to be newly minted upon vesting, if any
-        if (_timePassedSinceStake > _secondsPerDay) {
+        // if (_timePassedSinceStake > _secondsPerDay) {
 
             /// We've passed the minimum staking time; calculate minting rate average ((initialRate + finalRate) / 2)
 
             // First, calculate our final stake percentage based upon the total amount of Sigil staked
-            _finalStakePercentage = calculateFraction(_amount, totalSigilStaked, decimals);
-
-            //Calculates the percentage of the initial stake that the amount they are withdrawing takes up
-            _stakeWithdrawalPercentageAmount = calculateFraction(_amount, stakeBalances[msg.sender].initialStakeBalance, decimals);
-
-            //Calculates the amount that the amount th based on the withdrawal amount
-            _initialWithdrawalPercentageAmount = _stakeWithdrawalPercentageAmount.mul(stakeBalances[msg.sender].initialStakePercentage);
+            // First, calculate our final stake percentage based upon the total amount of Bela staked
+            _finalStakePercentage = calculateFraction(stakeBalances[msg.sender].initialStakeBalance, totalSigilStaked, decimals);
 
             // Second, calculate average of initial and final stake percentage
-            _stakePercentageAverage = calculateFraction((_initialWithdrawalPercentageAmount.add(_finalStakePercentage)), 2, 0);
+            _stakePercentageAverage = calculateFraction((stakeBalances[msg.sender].initialStakePercentage.add(_finalStakePercentage)), 2, 0);
 
             // Finally, calculate our final mint rate (in Sigil-per-second)
             _finalMintRate = globalMintRate.mul(_stakePercentageAverage);
             _finalMintRate = _finalMintRate.div(1 ether);
 
-            // Tokens were staked for enough time to mint new tokens; determine how many
-            if (_timePassedSinceStake > _secondsPerDay.mul(30)) {
-                // Tokens were staked for the maximum amount of time (30 days)
-                _tokensToMint = calculateMintTotal(_secondsPerDay.mul(30), _finalMintRate);
-            } else {
+
                 // Tokens were staked for a mintable amount of time, but less than the 30-day max
                 _tokensToMint = calculateMintTotal(_timePassedSinceStake, _finalMintRate);
-            }
-        }
+        // }
 
         // Return the amount of new tokens to be minted
         return _tokensToMint;
@@ -263,8 +257,7 @@ contract Sigil is MintableToken, HasNoEther {
     }
 
     function totalStaked() view public returns (uint ){
-
-      return totalSigilStaked;
+        return totalSigilStaked;
     }
 
     /// @dev Allows user to check their staked balance
@@ -340,7 +333,7 @@ contract Sigil is MintableToken, HasNoEther {
 
     function setPool(address _newAddress) public onlyOwner {
 
-      pool = _newAddress;
+        pool = _newAddress;
     }
 
 
@@ -349,8 +342,7 @@ contract Sigil is MintableToken, HasNoEther {
     /// @param _denominator is the bottom part of the fraction we are calculating
     /// @param _precision tells the function how many significant digits to calculate out to
     /// @return quotient returns the result of our fraction calculation
-    function calculateFraction(uint _numerator, uint _denominator, uint _precision) pure private returns(uint quotient)
-    {
+    function calculateFraction(uint _numerator, uint _denominator, uint _precision) pure private returns(uint quotient) {
         // Take passed value and expand it to the required precision
         _numerator = _numerator.mul(10 ** (_precision + 1));
         // handle last-digit rounding
@@ -361,8 +353,7 @@ contract Sigil is MintableToken, HasNoEther {
     /// @dev Determines mint total based upon how many seconds have passed
     /// @param _timeInSeconds takes the time that has elapsed since the last minting
     /// @return uint with the calculated number of new tokens to mint
-    function calculateMintTotal(uint _timeInSeconds, uint _mintRate) pure private returns(uint mintAmount)
-    {
+    function calculateMintTotal(uint _timeInSeconds, uint _mintRate) pure private returns(uint mintAmount) {
         // Calculates the amount of tokens to mint based upon the number of seconds passed
         return(_timeInSeconds.mul(_mintRate));
     }

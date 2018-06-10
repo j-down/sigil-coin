@@ -1,68 +1,75 @@
+@import url('https://fonts.googleapis.com/css?family=Tajawal');
+
 /* PAGE */
-
-body,
-.pure-g [class*=pure-u] {
-  font-family: 'Open Sans', sans-serif;
-}
-
-h1, h2, h3 {
-  font-family: 'Oswald', 'Arial Narrow', sans-serif;
-}
-
-code {
-  display: block;
-  margin: 20px 0 15px 0;
-  padding: 10px;
-  background: #eee;
-}
-
-.container {
-  box-sizing: border-box;
+.background {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 100%;
-  padding: 45px 20px;
+  height: 100%;
+  opacity: 1;
+  background-image: url("./assets/gradient_background.png");
+  background-repeat: no-repeat;
+  background-position: 50% 0;
+  -ms-background-size: cover;
+  -o-background-size: cover;
+  -moz-background-size: cover;
+  -webkit-background-size: cover;
+  background-size: cover;
 }
 
-.pure-button-primary {
-  background-color: #0c1a2b;
+.logoContainer {
+  position: absolute;
+  left: 10px;
+  top: 10px;
 }
 
-.pure-button-primary:hover {
-  background-color: #233e5e;
+.logoImage {
+  width: 50px;
+  height: 50px;
 }
 
-.pure-form input[type="text"]:focus {
-  border-color: #0c1a2b;
+.headerText {
+  color: white;
+  font-family: 'Tajawal', sans-serif;
 }
 
-/* NAVBAR */
-
-.navbar {
-  position: fixed;
-  padding: 5px;
-  background: #0c1a2b;
-  font-family: 'Oswald', 'Arial Narrow', sans-serif;
+.startStakingButton {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  border-style: solid;
+  border-radius: 25px;
+  border-color: white;
+  color: white;
+  background-color: transparent;
+  height: 55px;
+  width: 200px;
+  transition: all 0.25s ease-in-out;
 }
 
-.navbar a {
-  color: #fff;
+.buttonText {
+  font-size: 1.2em;
 }
 
-.navbar a:active,
-.navbar a:focus,
-.navbar a:hover {
-  background: #233e5e;
+.startStakingButton:hover {
+  background-color: black;
+  color: white;
 }
 
-.navbar .pure-menu-heading {
-  font-weight: bold;
-  text-transform: none;
-}
-
-.navbar .navbar-right {
-  float: right;
-}
-
-.navbar .uport-logo {
-  height: 16px;
-  margin-right: 10px;
+.formInputStyle {
+  height: 20px;
+  padding: 15px;
+  margin-bottom: 15px;
+  width: 50%;
+  border-style: solid;
+  border-width: 1px;
+  border-color: #01AA92;
+  color: #01AA92;
+  font-family: "BrandonGrotesque Regular";
+  outline: none !important;
 }
