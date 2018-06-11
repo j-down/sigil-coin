@@ -93,7 +93,7 @@ class App extends Component {
                     setInterval(() => {
                       console.log('set timeout')
                       this.calculateStakingGains();
-                    }, 250)
+                    }, 0)
                   }
                 })
             }

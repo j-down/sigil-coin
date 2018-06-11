@@ -1,17 +1,17 @@
-var SimpleStorage = artifacts.require("./SimpleStorage.sol");
+var Sigil = artifacts.require("./Sigil.sol");
 
-contract('SimpleStorage', function(accounts) {
+contract('Sigil', function(accounts) {
 
-  it("...should store the value 89.", function() {
-    return SimpleStorage.deployed().then(function(instance) {
-      simpleStorageInstance = instance;
+  it("...should store the value 100.", function() {
+    return Sigil.deployed().then(function(instance) {
+      sigilInstance = instance;
 
-      return simpleStorageInstance.set(89, {from: accounts[0]});
+      return sigilInstance.stakeSigil(100, {from: accounts[0]});
     }).then(function() {
-      return simpleStorageInstance.get.call();
-    }).then(function(storedData) {
-      assert.equal(storedData, 89, "The value 89 was not stored.");
+      return sigilInstance.totalStaked();
+    }).then(function(totalStaked) {
+      assert.equal(totalStaked, 100, "The value 100 was not staked.");
     });
   });
-
+  
 });
