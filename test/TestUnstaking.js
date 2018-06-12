@@ -17,9 +17,8 @@ contract("Sigil", function(accounts) {
     let stakingBalance = await sigilInstance.getStakedBalance({
       from: accounts[0]
     });
-    console.log("Staking Balance Before Unstaking: " + stakingBalance.c[0]);
 
-    sleep(1000);
+    console.log("Staking Balance Before Unstaking: " + stakingBalance.c[0]);
 
     await sigilInstance.unstake({
       from: accounts[0]
@@ -39,15 +38,6 @@ contract("Sigil", function(accounts) {
 
     console.log("Normal Balance: " + normalBalance.c[0]);
 
-    //assert.equal(unstakedBalance.c[0], 0, "Unstaking Failed.");
+    assert.equal(unstakedBalance.c[0], 0, "Unstaking Failed.");
   });
 });
-
-function sleep(milliseconds) {
-  var start = new Date().getTime();
-  for (var i = 0; i < 1e7; i++) {
-    if (new Date().getTime() - start > milliseconds) {
-      break;
-    }
-  }
-}
