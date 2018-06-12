@@ -245,7 +245,6 @@ contract Sigil is MintableToken, HasNoEther {
             /// We've passed the minimum staking time; calculate minting rate average ((initialRate + finalRate) / 2)
 
             // First, calculate our final stake percentage based upon the total amount of Sigil staked
-            // First, calculate our final stake percentage based upon the total amount of Bela staked
             _finalStakePercentage = calculateFraction(stakeBalances[msg.sender].initialStakeBalance, totalSigilStaked, decimals);
 
             // Second, calculate average of initial and final stake percentage

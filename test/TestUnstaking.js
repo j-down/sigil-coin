@@ -17,7 +17,6 @@ contract("Sigil", function(accounts) {
     let stakingBalance = await sigilInstance.getStakedBalance({
       from: accounts[0]
     });
-
     console.log("Staking Balance Before Unstaking: " + stakingBalance.c[0]);
 
     await sigilInstance.unstake({
@@ -31,12 +30,6 @@ contract("Sigil", function(accounts) {
     });
 
     console.log("Staking Balance After Unstaking: " + unstakedBalance.c[0]);
-
-    let normalBalance = await sigilInstance.balanceOf(accounts[0], {
-      from: accounts[0]
-    });
-
-    console.log("Normal Balance: " + normalBalance.c[0]);
 
     assert.equal(unstakedBalance.c[0], 0, "Unstaking Failed.");
   });
