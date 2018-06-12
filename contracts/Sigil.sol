@@ -20,11 +20,8 @@ pragma solidity ^0.4.18;
 //////////////////////////////////
 
 ///* Truffle format
-//import 'zeppelin-solidity/contracts/token/ERC20/MintableToken.sol';
-import "openzeppelin-solidity/contracts/token/ERC20/MintableToken.sol";
-import "openzeppelin-solidity/contracts/ownership/HasNoEther.sol";
-
-
+import "./MintableToken.sol";
+import "./HasNoEther.sol";
 
 contract Sigil is MintableToken, HasNoEther {
     // Using libraries
@@ -101,6 +98,10 @@ contract Sigil is MintableToken, HasNoEther {
     // Fire a loggable event when staked tokens are vested
     event Vest(address indexed vester, address indexed stakeSplitAddress, uint256 stakedAmount, uint256 stakingGains);
 
+    // TESTING: Print value
+    event Print(string text);
+
+
     //////////////////////////////////////////////////
     /// Begin Sigil token functionality
     //////////////////////////////////////////////////
@@ -124,8 +125,14 @@ contract Sigil is MintableToken, HasNoEther {
         // Set last minted to current block.timestamp ('now')
         ownerTimeLastMinted = now;
 
+        // Set poool mint time
+        poolTimeLastMinted = now;
+
         // 4500 minted tokens per day, 86400 seconds in a day
         ownerMintRate = calculateFraction(4500, 86400, decimals);
+
+        //
+        poolMintRate = calculateFraction(4500, 86400, decimals);
 
         // 4,900,000 targeted minted tokens per year via staking; 31,536,000 seconds per year
         globalMintRate = calculateFraction(4900000, 31536000, decimals);
@@ -189,11 +196,13 @@ contract Sigil is MintableToken, HasNoEther {
     /// @return bool on success
     function unstake() external returns (bool) {
 
+        Print("Begin unstaking");
+
         /// Sanity checks:
         // require that there was some amount vested
         require(stakeBalances[msg.sender].initialStakeBalance > 0);
         // require that time has elapsed
-        require(now > stakeBalances[msg.sender].initialStakeTime);
+        require(now >= stakeBalances[msg.sender].initialStakeTime);
 
         // Calculate the time elapsed since the tokens were originally staked
         uint _timePassedSinceStake = now.sub(stakeBalances[msg.sender].initialStakeTime);
@@ -303,8 +312,14 @@ contract Sigil is MintableToken, HasNoEther {
     // Sigil Pool distribution
     ////////////////////////////////
 
+    modifier onlyPool() {
+
+      require(msg.sender == pool);
+      _;
+    }
+
     // @dev allows distribution of Sigil to most upvoted causes, which is handled by a seperate contract
-    function poolClaim() external onlyOwner {
+    function poolClaim() external onlyPool {
         // Sanity check: ensure that we didn't travel back in time
         require(now > poolTimeLastMinted);
 
