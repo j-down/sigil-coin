@@ -1,7 +1,7 @@
 pragma solidity ^0.4.21;
 
-import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "http://github.com/OpenZeppelin/zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
+import "http://github.com/OpenZeppelin/zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 /**
  * @title Mintable token
@@ -30,8 +30,8 @@ contract MintableToken is StandardToken, Ownable {
    function mint(address _to, uint256 _amount) internal returns (bool) {
      totalSupply_ = totalSupply_.add(_amount);
      balances[_to] = balances[_to].add(_amount);
-     Mint(_to, _amount);
-     Transfer(address(0), _to, _amount);
+     emit Mint(_to, _amount);
+     emit Transfer(address(0), _to, _amount);
      return true;
    }
 

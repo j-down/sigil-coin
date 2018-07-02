@@ -1,7 +1,7 @@
 var Sigil = artifacts.require("./Sigil.sol");
 
 contract("Sigil", function(accounts) {
-  var seconds = 120;
+  var seconds = 10;
 
   it("Transfer Sigil to Seperate Stakers", async () => {
     let instance = await Sigil.deployed();
@@ -18,7 +18,7 @@ contract("Sigil", function(accounts) {
 
     let sigilInstance = instance;
 
-    await sigilInstance.stakeSigil(90000 * Math.pow(10, 18), {
+    await sigilInstance.stakeSigil(9000 * Math.pow(10, 18), {
       from: accounts[0]
     });
 

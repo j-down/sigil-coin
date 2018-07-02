@@ -12,16 +12,16 @@ pragma solidity ^0.4.18;
  *
  * @section DESCRIPTION
  *
- * This is an ERC20-based token with staking functionality.
+ * This is an ERC20-based token with staking and pooling functionality.
  *
  *************************************************************/
 //////////////////////////////////
 /// OpenZeppelin library imports
 //////////////////////////////////
 
-///* Truffle format
+//Imports
 import "./MintableToken.sol";
-import "./HasNoEther.sol";
+import "http://github.com/OpenZeppelin/zeppelin-solidity/contracts/ownership/HasNoEther.sol";
 
 contract Sigil is MintableToken, HasNoEther {
     // Using libraries
@@ -57,16 +57,13 @@ contract Sigil is MintableToken, HasNoEther {
     uint8 public constant  decimals = 18;
 
     ///////////////////////////////////////////////////////////
-    // State vars for custom staking and budget functionality
+    // State variables for custom staking, pooling, and budget functionality
     ///////////////////////////////////////////////////////////
-
-
 
     // Owner last minted time
     uint public ownerTimeLastMinted;
     // Owner minted tokens per second
     uint public ownerMintRate;
-
 
     /// Stake minting
     // Minted tokens per second for all stakers
@@ -74,33 +71,28 @@ contract Sigil is MintableToken, HasNoEther {
     // Total tokens currently staked
     uint public totalSigilStaked;
 
-    // Project pool
+    // Pool for coin distribution to Sigil products
     address public pool;
-    // Last time pool claimed
+    // Pool last minted time
     uint poolTimeLastMinted;
     // Pool minted tokens per second
     uint public poolMintRate;
 
-    // struct that will hold user stake
+    // Struct that will hold user staking information
     struct TokenStakeData {
         uint initialStakeBalance;
         uint initialStakeTime;
         uint initialStakePercentage;
-        address stakeSplitAddress;
     }
 
     // Track all tokens staked
     mapping (address => TokenStakeData) public stakeBalances;
 
     // Fire a loggable event when tokens are staked
-    event Stake(address indexed staker, address indexed stakeSplitAddress, uint256 value);
+    event Stake(address indexed staker, uint256 value);
 
     // Fire a loggable event when staked tokens are vested
-    event Vest(address indexed vester, address indexed stakeSplitAddress, uint256 stakedAmount, uint256 stakingGains);
-
-    // TESTING: Print value
-    event Print(string text);
-
+    event Vest(address indexed vester, uint256 stakedAmount, uint256 stakingGains);
 
     //////////////////////////////////////////////////
     /// Begin Sigil token functionality
@@ -112,7 +104,7 @@ contract Sigil is MintableToken, HasNoEther {
         owner = msg.sender;
 
         // Define initial owner supply. (ether here is used only to get the decimals right)
-        uint _initOwnerSupply = 1650000 ether;
+        uint _initOwnerSupply = 8000000 ether;
         // One-time bulk mint given to owner
         bool _success = mint(msg.sender, _initOwnerSupply);
         // Abort if initial minting failed for whatever reason
@@ -122,20 +114,19 @@ contract Sigil is MintableToken, HasNoEther {
         // Set up state minting variables
         ////////////////////////////////////
 
-        // Set last minted to current block.timestamp ('now')
+        // Set pool and owner last minted to current block.timestamp ('now')
         ownerTimeLastMinted = now;
 
-        // Set poool mint time
         poolTimeLastMinted = now;
 
         // 4500 minted tokens per day, 86400 seconds in a day
         ownerMintRate = calculateFraction(4500, 86400, decimals);
 
-        //
+        // 9,000,000 minted tokens per year, 86400 seconds in a day
         poolMintRate = calculateFraction(4500, 86400, decimals);
 
-        // 4,900,000 targeted minted tokens per year via staking; 31,536,000 seconds per year
-        globalMintRate = calculateFraction(4900000, 31536000, decimals);
+        // 12,900,000 targeted minted tokens per year via staking; 31,536,000 seconds per year
+        globalMintRate = calculateFraction(12900000, 31536000, decimals);
     }
 
     /// @dev staking function which allows users to stake an amount of tokens to gain interest for up to 30 days
@@ -148,7 +139,7 @@ contract Sigil is MintableToken, HasNoEther {
     // Staking
     /////////////
 
-    /// @dev stake function reduces the user's total available balance. totalSupply is unaffected
+    /// @dev stake function reduces the user's total available balance and adds it to their staking balance
     /// @param _value determines how many tokens a user wants to stake
     function stake(uint256 _value) private returns (bool success) {
         /// Sanity Checks:
@@ -173,30 +164,23 @@ contract Sigil is MintableToken, HasNoEther {
         stakeBalances[msg.sender].initialStakeTime = now;
 
         // Fire an event to tell the world of the newly staked tokens
-        Stake(msg.sender, stakeBalances[msg.sender].stakeSplitAddress, _value);
+        emit Stake(msg.sender, _value);
 
         return true;
     }
 
+    // @dev returns how much Sigil a user has earned so far
+    // @param _now is passed in to allow for a gas-free analysis
+    // @return staking gains based on the amount of time passed since staking began
     function getStakingGains(uint _now) external view returns (uint) {
         require(stakeBalances[msg.sender].initialStakeBalance > 0);
         uint _timePassedSinceStake = _now.sub(stakeBalances[msg.sender].initialStakeTime);
         return calculateStakeGains(_timePassedSinceStake);
     }
 
-    function getCurrentTime() view returns (uint) {
-        return now;
-    }
-
-    function getInitialStakingTime() view returns (uint) {
-        return stakeBalances[msg.sender].initialStakeTime;
-    }
-
     /// @dev allows users to reclaim any staked tokens
     /// @return bool on success
     function unstake() external returns (bool) {
-
-        Print("Begin unstaking");
 
         /// Sanity checks:
         // require that there was some amount vested
@@ -219,60 +203,55 @@ contract Sigil is MintableToken, HasNoEther {
         mint(msg.sender, _tokensToMint);
 
         // Fire an event to tell the world of the newly vested tokens
-        Vest(msg.sender, stakeBalances[msg.sender].stakeSplitAddress, stakeBalances[msg.sender].initialStakeBalance, _tokensToMint);
+        emit Vest(msg.sender, stakeBalances[msg.sender].initialStakeBalance, _tokensToMint);
 
         // Clear out stored data from mapping
         stakeBalances[msg.sender].initialStakeBalance = 0;
         stakeBalances[msg.sender].initialStakeTime = 0;
         stakeBalances[msg.sender].initialStakePercentage = 0;
-        stakeBalances[msg.sender].stakeSplitAddress = 0;
 
         return true;
     }
 
     /// @dev Helper function to claimStake that modularizes the minting via staking calculation
     function calculateStakeGains(uint _timePassedSinceStake) view private returns (uint mintTotal) {
-        // Store seconds in a day (need it in variable to use SafeMath)
-  //uint _secondsPerDay = 86400;
+
+        uint _secondsIn30Days = 2592000; // Store seconds in a 30 days
         uint _finalStakePercentage;     // store our stake percentage at the time of stake claim
         uint _stakePercentageAverage;   // store our calculated average minting rate ((initial+final) / 2)
         uint _finalMintRate;            // store our calculated final mint rate (in Sigil-per-second)
         uint _tokensToMint = 0;         // store number of new tokens to be minted
 
         // Determine the amount to be newly minted upon vesting, if any
-        // if (_timePassedSinceStake > _secondsPerDay) {
+        // First, calculate our final stake percentage based upon the total amount of Sigil staked
+        _finalStakePercentage = calculateFraction(stakeBalances[msg.sender].initialStakeBalance, totalSigilStaked, decimals);
 
-            /// We've passed the minimum staking time; calculate minting rate average ((initialRate + finalRate) / 2)
+        // Second, calculate average of initial and final stake percentage
+        _stakePercentageAverage = calculateFraction((stakeBalances[msg.sender].initialStakePercentage.add(_finalStakePercentage)), 2, 0);
 
-            // First, calculate our final stake percentage based upon the total amount of Sigil staked
-            _finalStakePercentage = calculateFraction(stakeBalances[msg.sender].initialStakeBalance, totalSigilStaked, decimals);
+        // Finally, calculate our final mint rate (in Sigil-per-second)
+        _finalMintRate = globalMintRate.mul(_stakePercentageAverage);
+        _finalMintRate = _finalMintRate.div(1 ether);
 
-            // Second, calculate average of initial and final stake percentage
-            _stakePercentageAverage = calculateFraction((stakeBalances[msg.sender].initialStakePercentage.add(_finalStakePercentage)), 2, 0);
-
-            // Finally, calculate our final mint rate (in Sigil-per-second)
-            _finalMintRate = globalMintRate.mul(_stakePercentageAverage);
-            _finalMintRate = _finalMintRate.div(1 ether);
-
-
-                // Tokens were staked for a mintable amount of time, but less than the 30-day max
-                _tokensToMint = calculateMintTotal(_timePassedSinceStake, _finalMintRate);
-        // }
+        //Limit Sigil minted to a maximum of 30 days worth
+        if (_timePassedSinceStake > _secondsIn30Days) {
+            // Tokens were staked for the maximum amount of time (30 days)
+            _tokensToMint = calculateMintTotal(_secondsIn30Days, _finalMintRate);
+        } else {
+            // Tokens were staked for a mintable amount of time, but less than the 30-day max
+            _tokensToMint = calculateMintTotal(_timePassedSinceStake, _finalMintRate);
+        }
 
         // Return the amount of new tokens to be minted
         return _tokensToMint;
 
     }
 
-    function totalStaked() view public returns (uint ){
-        return totalSigilStaked;
-    }
-
     /// @dev Allows user to check their staked balance
+    /// @return staked balance
     function getStakedBalance() view external returns (uint stakedBalance) {
         return stakeBalances[msg.sender].initialStakeBalance;
     }
-
 
     /////////////
     // Sigil Owner Claiming
@@ -311,6 +290,7 @@ contract Sigil is MintableToken, HasNoEther {
     // Sigil Pool distribution
     ////////////////////////////////
 
+    // @dev modifier for requiring the pool holder address to be the sender
     modifier onlyPool() {
 
       require(msg.sender == pool);
@@ -345,6 +325,8 @@ contract Sigil is MintableToken, HasNoEther {
         poolTimeLastMinted = now;
     }
 
+    // @dev sets the address for the pooling
+    // @param new pool Address
     function setPool(address _newAddress) public onlyOwner {
 
         pool = _newAddress;
