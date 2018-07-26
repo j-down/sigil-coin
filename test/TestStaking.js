@@ -1,88 +1,236 @@
 var Sigil = artifacts.require("./Sigil.sol");
 
 contract("Sigil", function(accounts) {
-  var seconds = 10;
-
-  it("Transfer Sigil to Seperate Stakers", async () => {
+  it("Begin Testing Sigil Staking Mechanic: ---", async () => {
     let instance = await Sigil.deployed();
 
     let sigilInstance = instance;
 
-    await sigilInstance.transfer(accounts[1], 1000 * Math.pow(10, 18), {
-      from: accounts[0]
-    });
-  });
+    let stakeSigil = await sigilInstance.stakeSigil(1, { from: accounts[0] });
 
-  it("Begin Staking Sigil.", async () => {
-    let instance = await Sigil.deployed();
-
-    let sigilInstance = instance;
-
-    await sigilInstance.stakeSigil(9000 * Math.pow(10, 18), {
+    let transferSigil = await sigilInstance.transfer(accounts[1], 1, {
       from: accounts[0]
     });
 
-    await sigilInstance.stakeSigil(1000 * Math.pow(10, 18), {
-      from: accounts[1]
+    let transferSigil3 = await sigilInstance.transfer(accounts[2], 1, {
+      from: accounts[0]
     });
+
+    let transferSigil4 = await sigilInstance.transfer(accounts[3], 3, {
+      from: accounts[0]
+    });
+
+    let stakeSigil2 = await sigilInstance.stakeSigil(1, { from: accounts[1] });
   });
 
-  it("Wait for Stakers to Earn Tokens", function(done) {
+  it("Waiting 1 minute...", function(done) {
     setTimeout(() => {
       done();
-    }, seconds * 1000);
+    }, 60000);
   });
 
-  it("Test the Earnings from Staking", async function() {
+  it("First Test: ---", async function() {
     let instance = await Sigil.deployed();
-
     let sigilInstance = instance;
-
-    await sigilInstance.unstake({
+    let unixTime = Math.floor(new Date() / 1000);
+    let stakingGains = await sigilInstance.getStakingGains.call(unixTime, {
       from: accounts[0]
     });
 
-    await sigilInstance.unstake({
+    let stakingGains2 = await sigilInstance.getStakingGains.call(unixTime, {
       from: accounts[1]
     });
 
-    let ownerStakingBalance = await sigilInstance.balanceOf(accounts[0], {
+    let stakeSigil3 = await sigilInstance.stakeSigil(1, { from: accounts[2] });
+
+    // let stakeBalance = await sigilInstance.stakeBalances.call(accounts[0]);
+    console.log("---- TOTAL GAINS ACCOUNT 1 ----");
+    console.log(stakingGains);
+    console.log("--------------------------------");
+
+    console.log("---- TOTAL GAINS ACCOUNT 2 ----");
+    console.log(stakingGains2);
+    console.log("--------------------------------");
+  });
+
+  it("Waiting 1 minute...", function(done) {
+    setTimeout(() => {
+      done();
+    }, 60000);
+  });
+
+  it("Test for appropriate change with one more person staking", async function() {
+    let instance = await Sigil.deployed();
+    let sigilInstance = instance;
+    let unixTime = Math.floor(new Date() / 1000);
+    let stakingGains = await sigilInstance.getStakingGains.call(unixTime, {
       from: accounts[0]
     });
-
-    let transfereeStakingBalance = await sigilInstance.balanceOf(accounts[1], {
+    let stakingGains2 = await sigilInstance.getStakingGains.call(unixTime, {
       from: accounts[1]
     });
 
-    console.log(
-      "Owner (90% of Total Staking) Staking Balance After " +
-        seconds +
-        " Second(s): " +
-        ownerStakingBalance.c[0] / 10000
-    );
+    let stakingGains3 = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[2]
+    });
 
-    console.log(
-      "Transferee (10% of Total Staking) Staking Balance After " +
-        seconds +
-        " Second(s): " +
-        transfereeStakingBalance.c[0] / 10000
-    );
+    // let stakeBalance = await sigilInstance.stakeBalances.call(accounts[0]);
+    console.log("---- TOTAL GAINS ACCOUNT 1 ----");
+    console.log(stakingGains);
+    console.log("--------------------------------");
+    console.log("---- TOTAL GAINS ACCOUNT 2 ----");
+    console.log(stakingGains2);
+    console.log("--------------------------------");
+    console.log("---- TOTAL GAINS ACCOUNT 3 ----");
+    console.log(stakingGains3);
+    console.log("--------------------------------");
+  });
 
-    // //A maximum value for the value to be off for the purposes of testing
-    // let loadingRange = 0.053;
-    //
-    // //Should increase at a rate of 0.05208 Sigil per second.
-    // let minExpected =
-    //   initialOwnerBalance.c[0] / 10000 + seconds * 0.052 - loadingRange;
-    //
-    // let maxExpected =
-    //   initialOwnerBalance.c[0] / 10000 + seconds * 0.052 + loadingRange;
-    //
-    // let ownerBalance = ownerFinalBalance.c[0] / 10000;
-    //
-    // assert(
-    //   minExpected <= ownerBalance && ownerBalance <= maxExpected,
-    //   "Incorrect Value for Owner Claim"
-    // );
+  it("Waiting 1 minute...", function(done) {
+    setTimeout(() => {
+      done();
+    }, 60000);
+  });
+
+  it("Testing one day without anyone staking: ---", async function() {
+    let instance = await Sigil.deployed();
+    let sigilInstance = instance;
+    let unixTime = Math.floor(new Date() / 1000);
+    let stakingGains = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[0]
+    });
+    let stakingGains2 = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[1]
+    });
+
+    let stakingGains3 = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[2]
+    });
+
+    // let stakeBalance = await sigilInstance.stakeBalances.call(accounts[0]);
+    console.log("---- TOTAL GAINS ACCOUNT 1 ----");
+    console.log(stakingGains);
+    console.log("--------------------------------");
+    console.log("---- TOTAL GAINS ACCOUNT 2 ----");
+    console.log(stakingGains2);
+    console.log("--------------------------------");
+    console.log("---- TOTAL GAINS ACCOUNT 3 ----");
+    console.log(stakingGains3);
+    console.log("--------------------------------");
+  });
+
+  it("Waiting 2 minutes...", function(done) {
+    setTimeout(() => {
+      done();
+    }, 120000);
+  });
+
+  it("2 Days Without Staking Test: ---", async function() {
+    let instance = await Sigil.deployed();
+    let sigilInstance = instance;
+    let unixTime = Math.floor(new Date() / 1000);
+    let stakingGains = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[0]
+    });
+    let stakingGains2 = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[1]
+    });
+
+    let stakingGains3 = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[2]
+    });
+
+    let stakeSigil = await sigilInstance.stakeSigil(3, { from: accounts[3] });
+
+    // let stakeBalance = await sigilInstance.stakeBalances.call(accounts[0]);
+    console.log("---- TOTAL GAINS ACCOUNT 1 ----");
+    console.log(stakingGains);
+    console.log("--------------------------------");
+    console.log("---- TOTAL GAINS ACCOUNT 2 ----");
+    console.log(stakingGains2);
+    console.log("--------------------------------");
+    console.log("---- TOTAL GAINS ACCOUNT 3 ----");
+    console.log(stakingGains3);
+    console.log("--------------------------------");
+  });
+
+  it("Waiting 1 minute...", function(done) {
+    setTimeout(() => {
+      done();
+    }, 60000);
+  });
+
+  it("Test for 4th person taking up half of total staking: ---", async function() {
+    let instance = await Sigil.deployed();
+    let sigilInstance = instance;
+    let unixTime = Math.floor(new Date() / 1000);
+    let stakingGains = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[0]
+    });
+    let stakingGains2 = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[1]
+    });
+
+    let stakingGains3 = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[2]
+    });
+
+    let stakingGains4 = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[3]
+    });
+
+    // let stakeBalance = await sigilInstance.stakeBalances.call(accounts[0]);
+    console.log("---- TOTAL GAINS ACCOUNT 1 ----");
+    console.log(stakingGains);
+    console.log("--------------------------------");
+    console.log("---- TOTAL GAINS ACCOUNT 2 ----");
+    console.log(stakingGains2);
+    console.log("--------------------------------");
+    console.log("---- TOTAL GAINS ACCOUNT 3 ----");
+    console.log(stakingGains3);
+    console.log("--------------------------------");
+    console.log("---- TOTAL GAINS ACCOUNT 4 ----");
+    console.log(stakingGains4);
+    console.log("--------------------------------");
+  });
+
+  it("Waiting 1 minute...", function(done) {
+    setTimeout(() => {
+      done();
+    }, 60000);
+  });
+
+  it("Test for multiple days : ---", async function() {
+    let instance = await Sigil.deployed();
+    let sigilInstance = instance;
+    let unixTime = Math.floor(new Date() / 1000);
+    let stakingGains = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[0]
+    });
+    let stakingGains2 = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[1]
+    });
+
+    let stakingGains3 = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[2]
+    });
+
+    let stakingGains4 = await sigilInstance.getStakingGains.call(unixTime, {
+      from: accounts[3]
+    });
+
+    // let stakeBalance = await sigilInstance.stakeBalances.call(accounts[0]);
+    console.log("---- TOTAL GAINS ACCOUNT 1 ----");
+    console.log(stakingGains);
+    console.log("--------------------------------");
+    console.log("---- TOTAL GAINS ACCOUNT 2 ----");
+    console.log(stakingGains2);
+    console.log("--------------------------------");
+    console.log("---- TOTAL GAINS ACCOUNT 3 ----");
+    console.log(stakingGains3);
+    console.log("--------------------------------");
+    console.log("---- TOTAL GAINS ACCOUNT 4 ----");
+    console.log(stakingGains4);
+    console.log("--------------------------------");
   });
 });
