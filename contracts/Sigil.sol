@@ -317,28 +317,28 @@ contract HasNoEther is Ownable {
 //////////////////////////////////
 
 contract Sigil is MintableToken, HasNoEther {
-    // Using libraries
+
+    // Lirbraries
     using SafeMath for uint;
 
     //////////////////////
-    // Token information
+    // Token Information
     //////////////////////
     string public constant name = "Sigil";
     string public constant symbol = "SIGL";
     uint8 public constant  decimals = 18;
 
     ///////////////////////////////////////////////////////////
-    // State variables for staking and pooling
+    // Variabes For Staking and Pooling
     ///////////////////////////////////////////////////////////
 
-    // -- Pool Minting Rates and Percentages --
+    // -- Pool Minting Rates and Percentages -- //
     // Pool for Sigil distribution to rewards pool
-    // initiall set to address 0 to allow for later setting of contract
+    // Set to 0 to prohibit issuing to the pool before it is assigned
     address public pool = address(0);
 
-    // Pool minted tokens per second
+    // Pool and Owner minted tokens per second
     uint public poolMintRate;
-    // Owner minted tokens per second
     uint public ownerMintRate;
 
     // Amount of Sigil to be staked to the pool, staking, and mint, as caluclated through their percentages
@@ -355,40 +355,39 @@ contract Sigil is MintableToken, HasNoEther {
     uint public ownerTimeLastMinted;
     uint public poolTimeLastMinted;
 
-    // -- Staking --
-    // Minted tokens per second for all stakers
+    // -- Staking -- //
+    // Minted tokens per second
     uint public stakingMintRate;
 
-    // Total tokens currently staked
+    // Total Sigil currently staked
     uint public totalSigilStaked;
 
-    // Maps the timestamp of totalStaking each time an account stakes or unstakes
+    // Mapping of the timestamp => totalStaking that is created each time an address stakes or unstakes
     mapping (uint => uint) totalStakingHistory;
 
     // Variable for staking accumulation accuracy. For testing, Set to 1 for seconds. 60 for minutes. 1440 for days.
-    uint16 timingVariable = 60;
+    uint timingVariable = 1440;
 
-    // Struct that will hold user staking information
+    // Address staking information
     struct AddressStakeData {
         uint stakeBalance;
         uint initialStakeTime;
-        uint initialStakePercentage;
     }
 
     // Track all tokens staked
     mapping (address => AddressStakeData) public stakeBalances;
 
-    // -- Inflation --
+    // -- Inflation -- //
     // Inflation rate begins at 100% per year and decreases by 15% per year until it reaches 10% where it decreases by 0.5% per year.
     uint256 inflationRate = 1000;
 
     // Used to manage when to inflate. Allowed to inflate once per year until the rate reaches 1%.
     uint256 public lastInflationUpdate;
 
-    // -- Events --
-    // Fire a loggable event when tokens are staked
+    // -- Events -- //
+    // Fired when tokens are staked
     event Stake(address indexed staker, uint256 value);
-    // Fire a loggable event when staked tokens are unstaked
+    // Fired when tokens are unstaked
     event Unstake(address indexed unstaker, uint256 stakedAmount, uint256 stakingGains);
 
     //////////////////////////////////////////////////
@@ -397,21 +396,21 @@ contract Sigil is MintableToken, HasNoEther {
 
     /// @dev Sigil token constructor
     constructor() public {
-        // Define owner
+        // Assign owner
         owner = msg.sender;
 
-        // Define initial owner supply. (ether here is used only to get the decimals right)
+        // Assign initial owner supply
         uint _initOwnerSupply = 8000000 ether;
-        // One-time bulk mint given to owner
+        // Mint given to owner only one-time
         bool _success = mint(msg.sender, _initOwnerSupply);
-        // Abort if initial minting failed for whatever reason
+        // Require minting success
         require(_success);
 
         // Set pool and owner last minted to ensure extra coins are not minted by either
         ownerTimeLastMinted = now;
         poolTimeLastMinted = now;
 
-        // Set minting rate for pool, staking, and owner over the course of 1 year
+        // Set minting amount for pool, staking, and owner over the course of 1 year
         poolMintAmount = _initOwnerSupply.mul(poolPercentage).div(100);
         ownerMintAmount = _initOwnerSupply.mul(ownerPercentage).div(100);
         stakingMintAmount = _initOwnerSupply.mul(stakingPercentage).div(100);
@@ -436,23 +435,26 @@ contract Sigil is MintableToken, HasNoEther {
     // at 10% the rate begins to decrease by 0.5% until it reaches 1%.
     function adjustInflationRate() private {
 
-        // Make sure adjustInflationRate cannot be balled for at least another year // still balled? :kane
-        lastInflationUpdate = now;
 
-        // Decrease inflation rate by 15% each year
-        if (inflationRate > 100) {
+      // Make sure adjustInflationRate cannot be called for at least another year
+      lastInflationUpdate = now;
 
-            inflationRate = inflationRate.sub(150);
-        }
-        else if (inflationRate > 10) {
-            //Inflation rate reaches 10%. Decrease inflation rate by 0.5% from here on out until it reaches 1%.
-            inflationRate = inflationRate.sub(5);
-        }
+      //Decrease inflation rate by 15% each year
+      if (inflationRate > 100) {
 
-        // Calculate new mint amount of Sigil that should be created per year
-        poolMintAmount = totalSupply.mul(inflationRate).div(1000).mul(poolPercentage).div(100);
-        ownerMintAmount = totalSupply.mul(inflationRate).div(1000).mul(ownerPercentage).div(100);
-        stakingMintAmount = totalSupply.mul(inflationRate).div(1000).mul(stakingPercentage).div(100);
+        inflationRate = inflationRate.sub(150);
+      }
+      //Inflation rate reaches 10%. Decrease inflation rate by 0.5% from here on out until it reaches 1%.
+      else if (inflationRate > 10) {
+
+        inflationRate = inflationRate.sub(5);
+      }
+
+      // Calculate new mint amount of Sigil that should be created per year.
+      // Example Inflation Past Year 1 for the poolMintAmount: 16M * 0.85 * 0.7 = 9,520,000
+      poolMintAmount = totalSupply.mul(inflationRate).div(1000).mul(poolPercentage).div(100);
+      ownerMintAmount = totalSupply.mul(inflationRate).div(1000).mul(ownerPercentage).div(100);
+      stakingMintAmount = totalSupply.mul(inflationRate).div(1000).mul(stakingPercentage).div(100);
 
         // Adjust Sigil created per-second for each rate
         poolMintRate = calculateFraction(poolMintAmount, 31536000 ether, decimals);
@@ -464,7 +466,7 @@ contract Sigil is MintableToken, HasNoEther {
     function updateInflationRate() public {
 
       // Require 1 year to have passed for every inflation adjustment
-      require(SafeMath.sub(now, lastInflationUpdate) > 31536000);
+      require(now.sub(lastInflationUpdate) > 31536000);
 
       adjustInflationRate();
 
@@ -500,10 +502,7 @@ contract Sigil is MintableToken, HasNoEther {
         stakeBalances[msg.sender].stakeBalance = _value;
 
         // Increment the staking staked tokens value
-        totalSigilStaked += _value;
-
-        /// Determine percentage of staking stake
-        stakeBalances[msg.sender].initialStakePercentage = calculateFraction(_value, totalSigilStaked, decimals);
+        totalSigilStaked = totalSigilStaked.add(_value);
 
         // Save the time that the stake started
         stakeBalances[msg.sender].initialStakeTime = now;
@@ -521,8 +520,12 @@ contract Sigil is MintableToken, HasNoEther {
     // @param _now is passed in to allow for a gas-free analysis
     // @return staking gains based on the amount of time passed since staking began
     function getStakingGains(uint _now) view public returns (uint) {
-        // possibly return 0 in an if statement rather than require?:kane
-        require(stakeBalances[msg.sender].stakeBalance > 0);
+    
+        if (stakeBalances[msg.sender].stakeBalance == 0) {
+        
+          return 0;
+        }
+        
         return calculateStakeGains(_now);
     }
 
@@ -536,28 +539,27 @@ contract Sigil is MintableToken, HasNoEther {
 
         // require that there was some amount vested
         require(stakeBalances[msg.sender].stakeBalance > 0);
-        // require that time has elapsed
-        require(now >= stakeBalances[msg.sender].initialStakeTime);
+
+        // require that at least 7 timing variables have passed (days)
+        require(now.div(timingVariable).sub(stakeBalances[msg.sender].initialStakeTime.div(timingVariable)) >= 7);
 
         // Calculate tokens to mint
         uint _tokensToMint = calculateStakeGains(now);
 
-        // Add the original stake back to the user's balance
-        balances[msg.sender] += stakeBalances[msg.sender].stakeBalance;
+        balances[msg.sender] = balances[msg.sender].add(stakeBalances[msg.sender].stakeBalance);
 
         // Subtract stake balance from totalSigilStaked
-        totalSigilStaked -= stakeBalances[msg.sender].stakeBalance;
+        totalSigilStaked = totalSigilStaked.sub(stakeBalances[msg.sender].stakeBalance);
 
         // Mint the new tokens to the sender
         mint(msg.sender, _tokensToMint);
 
-        // Fire an event to tell the world of the newly vested tokens
+        // Sigil unstaked event
         emit Unstake(msg.sender, stakeBalances[msg.sender].stakeBalance, _tokensToMint);
 
         // Clear out stored data from mapping
         stakeBalances[msg.sender].stakeBalance = 0;
         stakeBalances[msg.sender].initialStakeTime = 0;
-        stakeBalances[msg.sender].initialStakePercentage = 0;
 
         // Set this every time someone adjusts the totalSigilStaking amount
         setTotalStakingHistory();
@@ -569,41 +571,31 @@ contract Sigil is MintableToken, HasNoEther {
     // @param _now when the user stopped staking. Passed in as a variable to allow for checking without using gas from the getStakingGains function
     // @return uint for total coins to be minted
     function calculateStakeGains(uint _now) view private returns (uint mintTotal)  {
-        // add a require statement that 7 days have passed or something that lets the user know they can't
-        // get this amount until at least 7 days have passed for the purpose of the staking site: kane
-        // StakeTimeInVariable: TESTING (60 for minutes)
-        uint _nowAsTimingVariable = _now.div(timingVariable);    // Today as a unique value in unix time
-        uint _initialStakeTimeInVariable = 
-            stakeBalances[msg.sender].initialStakeTime.div(timingVariable); // When the user started staking as a unique day in unix time
-        uint _timePassedSinceStakeInVariable = 
-            _nowAsTimingVariable.sub(_initialStakeTimeInVariable); // How much time has passed, in days, since the user started staking.
 
-        // Keeps an additive track of the user's staking percentages over time
-        uint _stakePercentages = 0; 
-        // How many new Sigil tokens to create
-        uint _tokensToMint = 0;     
-        // Last day the totalSigilStaked was updated, used if a day is missing due to no one staking or unstaking 
-        uint _lastUsedVariable;    // weird name: kane
+      // StakeTimeInVariable: TESTING (60 for minutes)
+      uint _nowAsTimingVariable = _now.div(timingVariable);    // Today as a unique value in unix time
+      uint _initialStakeTimeInVariable = stakeBalances[msg.sender].initialStakeTime.div(timingVariable); // When the user started staking as a unique day in unix time
+      uint _timePassedSinceStakeInVariable = _nowAsTimingVariable.sub(_initialStakeTimeInVariable); // How much time has passed, in days, since the user started staking.
+      uint _stakePercentages = 0; // Keeps an additive track of the user's staking percentages over time
+      uint _tokensToMint = 0; // How many new Sigil tokens to create
+      uint _lastUsedVariable;  // Last day the totalSigilStaked was updated
 
-        // Average the msg.sender's relative percentage ownership of totalSigilStaked throughout each day since they started staking
-        for (uint i = _initialStakeTimeInVariable; i < _nowAsTimingVariable; i++) {
+      // Average this msg.sender's relative percentage ownership of totalSigilStaked throughout each day since they started staking
+      for (uint i = _initialStakeTimeInVariable; i < _nowAsTimingVariable; i++) {
 
-            // might want to switch the order of this because the majority of time it will not evaluate to 0,
-            // so you don't want that one to be called everytime: kane
-            
-            // If the day does not exist in the totalStakingHistory mapping
-            if (totalStakingHistory[i] == 0) { // does this evaluate to 0 for sure if it's not there?: kane
+        // If the day does not exist in the totalStakingHistory mapping
+        if (totalStakingHistory[i] != 0) {
+        
+           // If the day does exist add it to the number to be later averaged as a total average percentage of total staking
+          _stakePercentages = _stakePercentages.add(calculateFraction(stakeBalances[msg.sender].stakeBalance, totalStakingHistory[i], decimals));
 
-                // Use the last day found in the totalStakingHistory mapping
-                _stakePercentages = _stakePercentages.add(calculateFraction(stakeBalances[msg.sender].stakeBalance, _lastUsedVariable, decimals));
-            }
-            else {
-                // If the day does exist add it to the number to be later averaged as a total average percentage of total staking
-                _stakePercentages = _stakePercentages.add(calculateFraction(stakeBalances[msg.sender].stakeBalance, totalStakingHistory[i], decimals));
+          // Set this as the last day somene staked
+          _lastUsedVariable = totalStakingHistory[i];
+        }
+        else {
 
-                // Set this as the last day somene staked for use if next day/days are missing: kane
-                _lastUsedVariable = totalStakingHistory[i];
-            }
+          // Use the last day found in the totalStakingHistory mapping
+          _stakePercentages = _stakePercentages.add(calculateFraction(stakeBalances[msg.sender].stakeBalance, _lastUsedVariable, decimals));
         }
 
         // Get the account's average percentage staked of the total stake over the course of all days they have been staking
@@ -644,7 +636,7 @@ contract Sigil is MintableToken, HasNoEther {
 
     /// @dev allows contract owner to claim their mint
     function ownerClaim() external onlyOwner {
-        // Sanity check: ensure that we didn't travel back in time
+
         require(now > ownerTimeLastMinted);
 
         uint _timePassedSinceLastMint; // The amount of time passed since the owner claimed in seconds
@@ -654,7 +646,6 @@ contract Sigil is MintableToken, HasNoEther {
         // Calculate the number of seconds that have passed since the owner last took a claim
         _timePassedSinceLastMint = now.sub(ownerTimeLastMinted);
 
-        // Sanity check: ensure that some time has passed since the owner last claimed
         assert(_timePassedSinceLastMint > 0);
 
         // Determine the token mint amount, determined from the number of seconds passed and the ownerMintRate
@@ -663,7 +654,6 @@ contract Sigil is MintableToken, HasNoEther {
         // Mint the owner's tokens; this also increases totalSupply
         _mintingSuccess = mint(msg.sender, _tokenMintCount);
 
-        // Sanity check: ensure that the minting was successful
         require(_mintingSuccess);
 
         // New minting was a success. Set last time minted to current block.timestamp (now)
@@ -676,7 +666,11 @@ contract Sigil is MintableToken, HasNoEther {
 
     // @dev anyone can call this function that mints Sigil to the pool dedicated to Sigil distribution to rewards pool
     function poolIssue() public {
-        // Sanity check: ensure that we didn't travel back in time
+
+        // Do not allow tokens to be minted to the pool until the pool is set
+        require(pool != address(0));
+
+        // Make sure time has passed since last minted to pool
         require(now > poolTimeLastMinted);
         require(pool != address(0));
 
@@ -687,7 +681,6 @@ contract Sigil is MintableToken, HasNoEther {
         // Calculate the number of seconds that have passed since the owner last took a claim
         _timePassedSinceLastMint = now.sub(poolTimeLastMinted);
 
-        // Sanity check: ensure that some time has passed since the owner last claimed
         assert(_timePassedSinceLastMint > 0);
 
         // Determine the token mint amount, determined from the number of seconds passed and the ownerMintRate
@@ -696,7 +689,6 @@ contract Sigil is MintableToken, HasNoEther {
         // Mint the owner's tokens; this also increases totalSupply
         _mintingSuccess = mint(pool, _tokenMintCount);
 
-        // Sanity check: ensure that the minting was successful
         require(_mintingSuccess);
 
         // New minting was a success! Set last time minted to current block.timestamp (now)
@@ -727,8 +719,8 @@ contract Sigil is MintableToken, HasNoEther {
         return (_quotient);
     }
 
-    /// @dev Determines mint total based upon how many seconds have passed
-    /// @param _timeInSeconds takes the time that has elapsed since the last minting
+    /// @dev Determines the amount of Sigil to create based on the number of seconds that have passed
+    /// @param _timeInSeconds is the time passed in seconds to mint for
     /// @return uint with the calculated number of new tokens to mint
     function calculateMintTotal(uint _timeInSeconds, uint _mintRate) pure private returns(uint mintAmount) {
         // Calculates the amount of tokens to mint based upon the number of seconds passed
