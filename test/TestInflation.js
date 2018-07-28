@@ -1,11 +1,27 @@
 var Sigil = artifacts.require("./Sigil.sol");
 
-contract("Sigil", function(accounts) {
+const jsonrpc = "2.0";
+const id = 0;
+
+const send = (method, params = []) =>
+  web3.currentProvider.send({ id, jsonrpc, method, params });
+
+const timeTravel = async () => {
+  // Fails when less than 1 year
+  await send("evm_increaseTime", [31536001]);
+  await send("evm_mine");
+};
+
+contract("Scale", function(accounts) {
   var oldPoolMintRate;
   var oldOwnerMintRate;
-  var oldGlobalMintRate;
+  var oldStakingMintRate;
 
-  it("test that it should store increase total stake by 400.", async () => {
+  var poolPercentage;
+  var ownerPercentage;
+  var stakingPercentage;
+
+  it("Test that the inflation rates are accurate in the beginning", async () => {
     let instance = await Sigil.deployed();
     let sigilInstance = instance;
 
@@ -17,56 +33,139 @@ contract("Sigil", function(accounts) {
       from: accounts[0]
     });
 
-    let globalMintRate = await sigilInstance.globalMintRate({
+    let stakingMintRate = await sigilInstance.stakingMintRate({
       from: accounts[0]
     });
 
-    console.log("Pool Inflation Rate: " + poolMintRate);
-    console.log("Owner Inflation Rate: " + ownerMintRate);
-    console.log("Global Inflation Rate: " + globalMintRate);
+    poolPercentage = await sigilInstance.poolPercentage({
+      from: accounts[0]
+    });
 
-    oldPoolMintRate = poolMintRate;
-    oldOwnerMintRate = ownerMintRate;
-    oldGlobalMintRate = globalMintRate;
+    ownerPercentage = await sigilInstance.ownerPercentage({
+      from: accounts[0]
+    });
+
+    stakingPercentage = await sigilInstance.stakingPercentage({
+      from: accounts[0]
+    });
+
+    //Adjust for decimal places
+    oldPoolMintRate = poolMintRate.toNumber() / Math.pow(10, 18);
+    oldOwnerMintRate = ownerMintRate.toNumber() / Math.pow(10, 18);
+    oldStakingMintRate = stakingMintRate.toNumber() / Math.pow(10, 18);
+
+    poolPercentage = poolPercentage * 0.01;
+    ownerPercentage = ownerPercentage * 0.01;
+    stakingPercentage = stakingPercentage * 0.01;
+
+    console.log("Pool Inflation Rate: " + oldPoolMintRate);
+    console.log("Owner Inflation Rate: " + oldOwnerMintRate);
+    console.log("Staking Inflation Rate: " + oldStakingMintRate);
+
+    var totalMintRate = oldPoolMintRate + oldOwnerMintRate + oldStakingMintRate;
+
+    console.log("Total Mint Rate: " + totalMintRate);
+
+    let calculatedStakingPercentage = oldStakingMintRate / totalMintRate;
+    let calculatedPoolPercentage = oldPoolMintRate / totalMintRate;
+    let calculatedOwnerPercentage = oldOwnerMintRate / totalMintRate;
+
+    console.log("Calculated Pool Percentage: " + calculatedPoolPercentage);
+    console.log("Calculated Owner Percentage: " + calculatedOwnerPercentage);
+    console.log(
+      "Calculated Staking Percentage: " + calculatedStakingPercentage
+    );
+
+    assert(
+      stakingPercentage.toFixed(2) == calculatedStakingPercentage.toFixed(2) &&
+        poolPercentage.toFixed(2) == calculatedPoolPercentage.toFixed(2) &&
+        ownerPercentage.toFixed(2) == calculatedOwnerPercentage.toFixed(2)
+    );
   });
 
-  it("wait a few seconds", function(done) {
-    setTimeout(() => {
-      done();
-    }, 6000);
-  });
-
-  it("Final update for inflation rate", async function() {
+  it("Update inflation rate after 1 year", async () => {
     let instance = await Sigil.deployed();
     let sigilInstance = instance;
 
-    let inflateSigil = await sigilInstance.updateInflationRate({
-      from: accounts[0]
-    });
+    var i;
+    var percentInflation = 1.0;
 
-    let poolMintRate = await sigilInstance.poolMintRate({
-      from: accounts[0]
-    });
+    // Test for 25 years
+    // Start deflating by 0.005% after year 5 and will stop inflation rate decreases at 1%
+    for (i = 0; i < 25; i++) {
+      let yearsPassed = i + 1;
 
-    let ownerMintRate = await sigilInstance.ownerMintRate({
-      from: accounts[0]
-    });
+      console.log(
+        "------------ " + yearsPassed + " Year Passed ----------------"
+      );
 
-    let globalMintRate = await sigilInstance.globalMintRate({
-      from: accounts[0]
-    });
+      if (percentInflation > 0.1) {
+        percentInflation -= 0.15;
+      } else {
+        if (percentInflation > 0.01) {
+          percentInflation -= 0.005;
+        }
+      }
 
-    oldPoolMintRate = oldPoolMintRate - oldPoolMintRate * 0.15;
-    oldOwnerMintRate = oldOwnerMintRate - oldOwnerMintRate * 0.15;
-    oldGlobalMintRate = oldGlobalMintRate - oldGlobalMintRate * 0.15;
+      let timeTravelPromise = await timeTravel();
 
-    console.log("New Pool Inflation Rate: " + poolMintRate);
-    console.log("Expected Pool Inflation Rate: " + oldPoolMintRate);
+      let totalSupply = await sigilInstance.totalSupply({
+        from: accounts[0]
+      });
 
-    console.log("New Owner Mint Inflation Rate: " + ownerMintRate);
-    console.log("Expected Owner Mint Inflation Rate: " + oldOwnerMintRate);
+      let inflateSigil = await sigilInstance.updateInflationRate({
+        from: accounts[0]
+      });
 
-    console.log("New Global Mint Inflation Rate: " + globalMintRate);
-    console.log("Expected Global Mint Inflation Rate: " + oldGlobalMintRate);
+      let poolMintRate = await sigilInstance.poolMintRate({
+        from: accounts[0]
+      });
+
+      let ownerMintRate = await sigilInstance.ownerMintRate({
+        from: accounts[0]
+      });
+
+      let stakingMintRate = await sigilInstance.stakingMintRate({
+        from: accounts[0]
+      });
+
+      totalSupply = totalSupply.toNumber() / Math.pow(10, 18);
+
+      poolMintRate = poolMintRate.toNumber() / Math.pow(10, 18);
+      ownerMintRate = ownerMintRate.toNumber() / Math.pow(10, 18);
+      stakingMintRate = stakingMintRate.toNumber() / Math.pow(10, 18);
+
+      oldPoolMintRate =
+        totalSupply * percentInflation * poolPercentage / 31536000;
+      oldOwnerMintRate =
+        totalSupply * percentInflation * ownerPercentage / 31536000;
+      oldStakingMintRate =
+        totalSupply * percentInflation * stakingPercentage / 31536000;
+
+      console.log("New Pool Inflation Rate: " + poolMintRate.toFixed(5));
+      console.log(
+        "Expected Pool Inflation Rate: " + oldPoolMintRate.toFixed(5)
+      );
+
+      console.log("New Owner Mint Inflation Rate: " + ownerMintRate.toFixed(5));
+      console.log(
+        "Expected Owner Mint Inflation Rate: " + oldOwnerMintRate.toFixed(5)
+      );
+
+      console.log(
+        "New Staking Mint Inflation Rate: " + stakingMintRate.toFixed(5)
+      );
+      console.log(
+        "Expected Staking Mint Inflation Rate: " + oldStakingMintRate.toFixed(5)
+      );
+
+      console.log("-----------------------------");
+
+      assert(
+        poolMintRate.toFixed(5) == oldPoolMintRate.toFixed(5) &&
+          ownerMintRate.toFixed(5) == oldOwnerMintRate.toFixed(5) &&
+          stakingMintRate.toFixed(5) == oldStakingMintRate.toFixed(5)
+      );
+    }
   });
 });
