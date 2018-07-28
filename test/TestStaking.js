@@ -1,4 +1,20 @@
-var Sigil = artifacts.require("./Sigil.sol");
+// IMPORTANT
+// To test staking you must implement these two functions in the solidity contract
+// function getNow() view external returns (uint) {
+//
+//   return now;
+// }
+//
+// function updateTotalStakingHistory() external {
+//
+//   // Get now in terms of the variable staking accuracy (days in Scale's case)
+//   uint _nowAsTimingVariable = now.div(timingVariable);
+//
+//   // Set the totalStakingHistory as a timestamp of the totalScaleStaked today
+//   totalStakingHistory[_nowAsTimingVariable] = totalScaleStaked;
+// }
+
+var Scale = artifacts.require("./Scale.sol");
 // var timeTravel = require("./TimeUtil.js");
 
 const jsonrpc = "2.0";
@@ -23,16 +39,16 @@ const timeTravelOneHour = async () => {
 
 contract("Scale", async accounts => {
   var secondsInADay = 86400;
-  var sigilStakingRate = 0;
+  var scaleStakingRate = 0;
   var firstPersonInitialBalance = 0;
   var firstPersonCalculatedEarnings;
 
-  it("Transfer Sigil to accounts that will stake and begin staking for 1 and 2.", async () => {
-    let instance = await Sigil.deployed();
+  it("Transfer Scale to accounts that will stake and begin staking for 1 and 2.", async () => {
+    let instance = await Scale.deployed();
 
-    let sigilInstance = instance;
+    let scaleInstance = instance;
 
-    firstPersonInitialBalance = await sigilInstance.balanceOf(accounts[0], {
+    firstPersonInitialBalance = await scaleInstance.balanceOf(accounts[0], {
       from: accounts[0]
     });
 
@@ -41,32 +57,32 @@ contract("Scale", async accounts => {
 
     console.log("Person 1 Initial Balance: " + firstPersonInitialBalance);
 
-    let currentTime = await sigilInstance.getNow.call({ from: accounts[0] });
+    let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
 
     var d = new Date(0);
 
     d.setUTCSeconds(currentTime);
     console.log("--- Initial Stake Date: " + d);
 
-    let stakeSigil = await sigilInstance.stakeSigil(1, { from: accounts[0] });
+    let stakeScale = await scaleInstance.stakeScale(1, { from: accounts[0] });
 
-    let transferSigil = await sigilInstance.transfer(accounts[1], 1, {
+    let transferScale = await scaleInstance.transfer(accounts[1], 1, {
       from: accounts[0]
     });
 
-    let transferSigil3 = await sigilInstance.transfer(accounts[2], 1, {
+    let transferScale3 = await scaleInstance.transfer(accounts[2], 1, {
       from: accounts[0]
     });
 
-    let transferSigil4 = await sigilInstance.transfer(accounts[3], 3, {
+    let transferScale4 = await scaleInstance.transfer(accounts[3], 3, {
       from: accounts[0]
     });
 
-    sigilStakingRate = await sigilInstance.stakingMintRate.call({
+    scaleStakingRate = await scaleInstance.stakingMintRate.call({
       from: accounts[0]
     });
 
-    let stakeSigil2 = await sigilInstance.stakeSigil(1, {
+    let stakeScale2 = await scaleInstance.stakeScale(1, {
       from: accounts[1]
     });
 
@@ -75,15 +91,15 @@ contract("Scale", async accounts => {
 
   //Test to make sure first staker worked. Wait another
   it("Verify First Two Stakers Split", async () => {
-    let instance = await Sigil.deployed();
-    let sigilInstance = instance;
-    let currentTime = await sigilInstance.getNow.call({ from: accounts[0] });
+    let instance = await Scale.deployed();
+    let scaleInstance = instance;
+    let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
 
-    let stakingGains = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[0]
     });
 
-    let stakingGains2 = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains2 = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[1]
     });
 
@@ -93,32 +109,32 @@ contract("Scale", async accounts => {
     console.log("// -- Account 2 Total Gains -- //");
     console.log(stakingGains2.toNumber() / Math.pow(10, 18));
 
-    let totalSigilCalculatedEarnings =
+    let totalScaleCalculatedEarnings =
       stakingGains.toNumber() / Math.pow(10, 18) +
       stakingGains2.toNumber() / Math.pow(10, 18);
 
-    let totalSigilExpectedEarnings =
-      daysPassed * sigilStakingRate * secondsInADay / Math.pow(10, 18);
+    let totalScaleExpectedEarnings =
+      daysPassed * scaleStakingRate * secondsInADay / Math.pow(10, 18);
 
     assert.equal(
-      totalSigilCalculatedEarnings.toFixed(5),
-      totalSigilExpectedEarnings.toFixed(5)
+      totalScaleCalculatedEarnings.toFixed(5),
+      totalScaleExpectedEarnings.toFixed(5)
     );
   });
 
   it("Travel two days without anyone staking", async () => {
-    let instance = await Sigil.deployed();
-    let sigilInstance = instance;
+    let instance = await Scale.deployed();
+    let scaleInstance = instance;
 
     let timeTravelPromise = await timeTravel(2);
 
-    let currentTime = await sigilInstance.getNow.call({ from: accounts[0] });
+    let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
 
-    let stakingGains = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[0]
     });
 
-    let stakingGains2 = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains2 = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[1]
     });
 
@@ -128,38 +144,38 @@ contract("Scale", async accounts => {
     console.log("// -- Account 2 Total Gains -- //");
     console.log(stakingGains2.toNumber() / Math.pow(10, 18));
 
-    let totalSigilCalculatedEarnings =
+    let totalScaleCalculatedEarnings =
       stakingGains.toNumber() / Math.pow(10, 18) +
       stakingGains2.toNumber() / Math.pow(10, 18);
 
-    let totalSigilExpectedEarnings =
-      daysPassed * sigilStakingRate * secondsInADay / Math.pow(10, 18);
+    let totalScaleExpectedEarnings =
+      daysPassed * scaleStakingRate * secondsInADay / Math.pow(10, 18);
 
     assert.equal(
-      totalSigilCalculatedEarnings.toFixed(5),
-      totalSigilExpectedEarnings.toFixed(5)
+      totalScaleCalculatedEarnings.toFixed(5),
+      totalScaleExpectedEarnings.toFixed(5)
     );
   });
 
   it("Third person stakes then travel one day", async () => {
-    let instance = await Sigil.deployed();
-    let sigilInstance = instance;
+    let instance = await Scale.deployed();
+    let scaleInstance = instance;
 
-    let stakeSigil = await sigilInstance.stakeSigil(1, { from: accounts[2] });
+    let stakeScale = await scaleInstance.stakeScale(1, { from: accounts[2] });
 
     let timeTravelPromise = await timeTravel(1);
 
-    let currentTime = await sigilInstance.getNow.call({ from: accounts[0] });
+    let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
 
-    let stakingGains = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[0]
     });
 
-    let stakingGains2 = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains2 = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[1]
     });
 
-    let stakingGains3 = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains3 = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[2]
     });
 
@@ -171,37 +187,37 @@ contract("Scale", async accounts => {
     console.log("// -- Account 3 Total Gains -- //");
     console.log(stakingGains3.toNumber() / Math.pow(10, 18));
 
-    let totalSigilCalculatedEarnings =
+    let totalScaleCalculatedEarnings =
       stakingGains.toNumber() / Math.pow(10, 18) +
       stakingGains2.toNumber() / Math.pow(10, 18) +
       stakingGains3.toNumber() / Math.pow(10, 18);
 
-    let totalSigilExpectedEarnings =
-      daysPassed * sigilStakingRate * secondsInADay / Math.pow(10, 18);
+    let totalScaleExpectedEarnings =
+      daysPassed * scaleStakingRate * secondsInADay / Math.pow(10, 18);
 
     assert.equal(
-      totalSigilCalculatedEarnings.toFixed(5),
-      totalSigilExpectedEarnings.toFixed(5)
+      totalScaleCalculatedEarnings.toFixed(5),
+      totalScaleExpectedEarnings.toFixed(5)
     );
   });
 
   it("Skip a day without staking", async () => {
-    let instance = await Sigil.deployed();
-    let sigilInstance = instance;
+    let instance = await Scale.deployed();
+    let scaleInstance = instance;
 
     let timeTravelPromise = await timeTravel(1);
 
-    let currentTime = await sigilInstance.getNow.call({ from: accounts[0] });
+    let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
 
-    let stakingGains = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[0]
     });
 
-    let stakingGains2 = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains2 = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[1]
     });
 
-    let stakingGains3 = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains3 = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[2]
     });
 
@@ -213,43 +229,43 @@ contract("Scale", async accounts => {
     console.log("// -- Account 3 Total Gains -- //");
     console.log(stakingGains3.toNumber() / Math.pow(10, 18));
 
-    let totalSigilCalculatedEarnings =
+    let totalScaleCalculatedEarnings =
       stakingGains.toNumber() / Math.pow(10, 18) +
       stakingGains2.toNumber() / Math.pow(10, 18) +
       stakingGains3.toNumber() / Math.pow(10, 18);
 
-    let totalSigilExpectedEarnings =
-      daysPassed * sigilStakingRate * secondsInADay / Math.pow(10, 18);
+    let totalScaleExpectedEarnings =
+      daysPassed * scaleStakingRate * secondsInADay / Math.pow(10, 18);
 
     assert.equal(
-      totalSigilCalculatedEarnings.toFixed(5),
-      totalSigilExpectedEarnings.toFixed(5)
+      totalScaleCalculatedEarnings.toFixed(5),
+      totalScaleExpectedEarnings.toFixed(5)
     );
   });
 
   it("Fourth person stakes half of total staking", async () => {
-    let instance = await Sigil.deployed();
-    let sigilInstance = instance;
+    let instance = await Scale.deployed();
+    let scaleInstance = instance;
 
-    let stakeSigil = await sigilInstance.stakeSigil(3, { from: accounts[3] });
+    let stakeScale = await scaleInstance.stakeScale(3, { from: accounts[3] });
 
     let timeTravelPromise = await timeTravel(1);
 
-    let currentTime = await sigilInstance.getNow.call({ from: accounts[0] });
+    let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
 
-    let stakingGains = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[0]
     });
 
-    let stakingGains2 = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains2 = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[1]
     });
 
-    let stakingGains3 = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains3 = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[2]
     });
 
-    let stakingGains4 = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains4 = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[3]
     });
 
@@ -263,24 +279,24 @@ contract("Scale", async accounts => {
     console.log("// -- Account 4 Total Gains -- //");
     console.log(stakingGains4.toNumber() / Math.pow(10, 18));
 
-    let totalSigilCalculatedEarnings =
+    let totalScaleCalculatedEarnings =
       stakingGains.toNumber() / Math.pow(10, 18) +
       stakingGains2.toNumber() / Math.pow(10, 18) +
       stakingGains3.toNumber() / Math.pow(10, 18) +
       stakingGains4.toNumber() / Math.pow(10, 18);
 
-    let totalSigilExpectedEarnings =
-      daysPassed * sigilStakingRate * secondsInADay / Math.pow(10, 18);
+    let totalScaleExpectedEarnings =
+      daysPassed * scaleStakingRate * secondsInADay / Math.pow(10, 18);
 
     assert.equal(
-      totalSigilCalculatedEarnings.toFixed(5),
-      totalSigilExpectedEarnings.toFixed(5)
+      totalScaleCalculatedEarnings.toFixed(5),
+      totalScaleExpectedEarnings.toFixed(5)
     );
   });
 
   it("Everyone staking for 30 days.", async () => {
-    let instance = await Sigil.deployed();
-    let sigilInstance = instance;
+    let instance = await Scale.deployed();
+    let scaleInstance = instance;
 
     var i;
 
@@ -288,32 +304,32 @@ contract("Scale", async accounts => {
       console.log("--------- Days passed " + daysPassed + "----------");
       let timeTravelPromise = await timeTravel(1);
 
-      let currentTime = await sigilInstance.getNow.call({ from: accounts[0] });
+      let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
 
       var d = new Date(0);
 
       d.setUTCSeconds(currentTime);
       console.log("--- Current date: " + d);
 
-      let stakingGains = await sigilInstance.getStakingGains.call(currentTime, {
+      let stakingGains = await scaleInstance.getStakingGains.call(currentTime, {
         from: accounts[0]
       });
 
-      let stakingGains2 = await sigilInstance.getStakingGains.call(
+      let stakingGains2 = await scaleInstance.getStakingGains.call(
         currentTime,
         {
           from: accounts[1]
         }
       );
 
-      let stakingGains3 = await sigilInstance.getStakingGains.call(
+      let stakingGains3 = await scaleInstance.getStakingGains.call(
         currentTime,
         {
           from: accounts[2]
         }
       );
 
-      let stakingGains4 = await sigilInstance.getStakingGains.call(
+      let stakingGains4 = await scaleInstance.getStakingGains.call(
         currentTime,
         {
           from: accounts[3]
@@ -330,28 +346,28 @@ contract("Scale", async accounts => {
       console.log("// -- Account 4 Total Gains -- //");
       console.log(stakingGains4.toNumber() / Math.pow(10, 18));
 
-      let totalSigilCalculatedEarnings =
+      let totalScaleCalculatedEarnings =
         stakingGains.toNumber() / Math.pow(10, 18) +
         stakingGains2.toNumber() / Math.pow(10, 18) +
         stakingGains3.toNumber() / Math.pow(10, 18) +
         stakingGains4.toNumber() / Math.pow(10, 18);
 
-      let totalSigilExpectedEarnings =
-        daysPassed * sigilStakingRate * secondsInADay / Math.pow(10, 18);
+      let totalScaleExpectedEarnings =
+        daysPassed * scaleStakingRate * secondsInADay / Math.pow(10, 18);
 
-      console.log(totalSigilExpectedEarnings);
-      console.log(totalSigilCalculatedEarnings);
+      console.log(totalScaleExpectedEarnings);
+      console.log(totalScaleCalculatedEarnings);
       // Sometimes the timeTravel is slightly off and is close to the next day but not exactly. So we wind forward
       //    an hour if this happens.
       if (
-        totalSigilCalculatedEarnings.toFixed(5) ==
-        totalSigilExpectedEarnings.toFixed(5)
+        totalScaleCalculatedEarnings.toFixed(5) ==
+        totalScaleExpectedEarnings.toFixed(5)
       ) {
         console.log("--- passed ---");
       } else {
         let timeProm = await timeTravelOneHour();
 
-        let currentTime = await sigilInstance.getNow.call({
+        let currentTime = await scaleInstance.getNow.call({
           from: accounts[0]
         });
 
@@ -360,28 +376,28 @@ contract("Scale", async accounts => {
         d.setUTCSeconds(currentTime);
         console.log("--- Current date: " + d);
 
-        let stakingGains = await sigilInstance.getStakingGains.call(
+        let stakingGains = await scaleInstance.getStakingGains.call(
           currentTime,
           {
             from: accounts[0]
           }
         );
 
-        let stakingGains2 = await sigilInstance.getStakingGains.call(
+        let stakingGains2 = await scaleInstance.getStakingGains.call(
           currentTime,
           {
             from: accounts[1]
           }
         );
 
-        let stakingGains3 = await sigilInstance.getStakingGains.call(
+        let stakingGains3 = await scaleInstance.getStakingGains.call(
           currentTime,
           {
             from: accounts[2]
           }
         );
 
-        let stakingGains4 = await sigilInstance.getStakingGains.call(
+        let stakingGains4 = await scaleInstance.getStakingGains.call(
           currentTime,
           {
             from: accounts[3]
@@ -398,28 +414,28 @@ contract("Scale", async accounts => {
         console.log("// -- Account 4 Total Gains -- //");
         console.log(stakingGains4.toNumber() / Math.pow(10, 18));
 
-        let totalSigilCalculatedEarnings =
+        let totalScaleCalculatedEarnings =
           stakingGains.toNumber() / Math.pow(10, 18) +
           stakingGains2.toNumber() / Math.pow(10, 18) +
           stakingGains3.toNumber() / Math.pow(10, 18) +
           stakingGains4.toNumber() / Math.pow(10, 18);
 
-        let totalSigilExpectedEarnings =
-          daysPassed * sigilStakingRate * secondsInADay / Math.pow(10, 18);
+        let totalScaleExpectedEarnings =
+          daysPassed * scaleStakingRate * secondsInADay / Math.pow(10, 18);
 
-        console.log(totalSigilExpectedEarnings);
-        console.log(totalSigilCalculatedEarnings);
+        console.log(totalScaleExpectedEarnings);
+        console.log(totalScaleCalculatedEarnings);
         assert.equal(
-          totalSigilCalculatedEarnings.toFixed(5),
-          totalSigilExpectedEarnings.toFixed(5)
+          totalScaleCalculatedEarnings.toFixed(5),
+          totalScaleExpectedEarnings.toFixed(5)
         );
       }
     }
   });
 
   it("First person unstakes", async () => {
-    let instance = await Sigil.deployed();
-    let sigilInstance = instance;
+    let instance = await Scale.deployed();
+    let scaleInstance = instance;
 
     console.log("// -- Account 1 Account Balance -- //");
     console.log(firstPersonInitialBalance);
@@ -428,7 +444,7 @@ contract("Scale", async accounts => {
 
     // -- log the total staking information
 
-    let currentTime = await sigilInstance.getNow.call({
+    let currentTime = await scaleInstance.getNow.call({
       from: accounts[0]
     });
 
@@ -437,19 +453,19 @@ contract("Scale", async accounts => {
     d.setUTCSeconds(currentTime);
     console.log("--- Current date: " + d);
 
-    let stakingGains = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[0]
     });
 
-    let stakingGains2 = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains2 = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[1]
     });
 
-    let stakingGains3 = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains3 = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[2]
     });
 
-    let stakingGains4 = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains4 = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[3]
     });
 
@@ -463,24 +479,24 @@ contract("Scale", async accounts => {
     console.log("// -- Account 4 Total Gains -- //");
     console.log(stakingGains4.toNumber() / Math.pow(10, 18));
 
-    let totalSigilCalculatedEarnings =
+    let totalScaleCalculatedEarnings =
       stakingGains.toNumber() / Math.pow(10, 18) +
       stakingGains2.toNumber() / Math.pow(10, 18) +
       stakingGains3.toNumber() / Math.pow(10, 18) +
       stakingGains4.toNumber() / Math.pow(10, 18);
 
-    let totalSigilExpectedEarnings =
-      daysPassed * sigilStakingRate * secondsInADay / Math.pow(10, 18);
+    let totalScaleExpectedEarnings =
+      daysPassed * scaleStakingRate * secondsInADay / Math.pow(10, 18);
 
-    console.log(totalSigilExpectedEarnings);
-    console.log(totalSigilCalculatedEarnings);
+    console.log(totalScaleExpectedEarnings);
+    console.log(totalScaleCalculatedEarnings);
 
     // --
 
     // Because at least 7 days have passed person 1 can unstake.
-    let unstakeSigil = await sigilInstance.unstake({ from: accounts[0] });
+    let unstakeScale = await scaleInstance.unstake({ from: accounts[0] });
 
-    let firstPersonBalance = await sigilInstance.balanceOf(accounts[0], {
+    let firstPersonBalance = await scaleInstance.balanceOf(accounts[0], {
       from: accounts[0]
     });
 
@@ -502,25 +518,25 @@ contract("Scale", async accounts => {
   });
 
   it("Make sure everyone else is still staking properly", async () => {
-    let instance = await Sigil.deployed();
-    let sigilInstance = instance;
+    let instance = await Scale.deployed();
+    let scaleInstance = instance;
 
     //reset days to make sure current stakers are staking properly
     daysPassed = 0;
 
     let timeTravelPromise = await timeTravel(1);
 
-    let currentTime = await sigilInstance.getNow.call({ from: accounts[1] });
+    let currentTime = await scaleInstance.getNow.call({ from: accounts[1] });
 
-    let stakingGains = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[1]
     });
 
-    let stakingGains2 = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains2 = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[2]
     });
 
-    let stakingGains3 = await sigilInstance.getStakingGains.call(currentTime, {
+    let stakingGains3 = await scaleInstance.getStakingGains.call(currentTime, {
       from: accounts[3]
     });
 
@@ -532,19 +548,19 @@ contract("Scale", async accounts => {
     console.log("// -- Account 3 Total Gains -- //");
     console.log(stakingGains3.toNumber() / Math.pow(10, 18));
 
-    let totalSigilCalculatedEarnings =
+    let totalScaleCalculatedEarnings =
       stakingGains.toNumber() / Math.pow(10, 18) +
       stakingGains2.toNumber() / Math.pow(10, 18) +
       stakingGains3.toNumber() / Math.pow(10, 18);
 
-    let totalSigilExpectedEarnings =
-      daysPassed * sigilStakingRate * secondsInADay / Math.pow(10, 18);
+    let totalScaleExpectedEarnings =
+      daysPassed * scaleStakingRate * secondsInADay / Math.pow(10, 18);
 
-    console.log(totalSigilExpectedEarnings);
-    console.log(totalSigilCalculatedEarnings);
+    console.log(totalScaleExpectedEarnings);
+    console.log(totalScaleCalculatedEarnings);
     // assert.equal(
-    //   totalSigilCalculatedEarnings.toFixed(5),
-    //   totalSigilExpectedEarnings.toFixed(5)
+    //   totalScaleCalculatedEarnings.toFixed(5),
+    //   totalScaleExpectedEarnings.toFixed(5)
     // );
   });
 });

@@ -1,5 +1,5 @@
-var Sigil = artifacts.require("./Sigil.sol");
+var Scale = artifacts.require("./Scale.sol");
 
 module.exports = function(deployer) {
-  deployer.deploy(Sigil);
+  deployer.deploy(Scale);
 };

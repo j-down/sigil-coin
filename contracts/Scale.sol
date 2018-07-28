@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 /**
  * @title ERC20Basic
@@ -57,12 +57,8 @@ contract Ownable {
 /**************************************************************
  * @title Scale Token Contract
  * @file Scale.sol
- * @author Jared Downing and Kane Thomas of Scale LLC
+ * @author Jared Downing and Kane Thomas of the Scale Network
  * @version 1.0
- *
- * @section LICENSE
- *
- * Contact for licensing details. All rights reserved.
  *
  * @section DESCRIPTION
  *

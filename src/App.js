@@ -1,5 +1,5 @@
 import React, {Component} from 'react'
-import SigilContract from '../build/contracts/Sigil.json'
+import ScaleContract from '../build/contracts/Scale.json'
 import getWeb3 from './utils/getWeb3'
 
 import './css/oswald.css'
@@ -7,7 +7,7 @@ import './css/open-sans.css'
 import './css/pure-min.css'
 import './App.css'
 
-import sigillogo from './assets/logo_rounded.png';
+import scalelogo from './assets/logo_rounded.png';
 
 class App extends Component {
   constructor(props) {
@@ -16,9 +16,9 @@ class App extends Component {
     this.state = {
       storageValue: 0,
       web3: null,
-      sigilBalance: null,
-      sigilStakeBalance: null,
-      sigilInstance: null,
+      scaleBalance: null,
+      scaleStakeBalance: null,
+      scaleInstance: null,
       stakeGains: 0
     }
   }
@@ -48,13 +48,13 @@ class App extends Component {
      */
 
     const contract = require('truffle-contract')
-    const sigil = contract(SigilContract)
-    sigil.setProvider(this.state.web3.currentProvider)
+    const scale = contract(ScaleContract)
+    scale.setProvider(this.state.web3.currentProvider)
 
     // Declaring the default "from" address to avoid error invalid address error
-    sigil.defaults({from: this.state.web3.eth.coinbase});
-    // Declaring this for later so we can chain functions on sigil.
-    var sigilInstance
+    scale.defaults({from: this.state.web3.eth.coinbase});
+    // Declaring this for later so we can chain functions on scale.
+    var scaleInstance
 
     // Get accounts.
     this
@@ -62,33 +62,33 @@ class App extends Component {
       .web3
       .eth
       .getAccounts((error, accounts) => {
-        sigil
+        scale
           .deployed()
           .then((instance) => {
-            sigilInstance = instance
-            console.log(sigilInstance, 'sigilInstance instanciation')
+            scaleInstance = instance
+            console.log(scaleInstance, 'scaleInstance instanciation')
             if (error) {
               console.log(error, 'error');
             } else {
-              this.setState({ sigilInstance }, this.getTotalSigilStaked);
+              this.setState({ scaleInstance }, this.getTotalScaleStaked);
               console.log(accounts, "accounts")
               let account = accounts[0];
-              sigilInstance
+              scaleInstance
                 .balanceOf(account)
                 .then(result => {
                   
                   console.log(result, 'result')
                   let balance = result.c[0] / 10000;
-                  this.setState({sigilBalance: balance});
+                  this.setState({scaleBalance: balance});
                 }).catch(error => {
                   console.log(error, 'error')
                 })
-                sigilInstance
+                scaleInstance
                 .getStakedBalance()
                 .then((result) => {
                   console.log(result, 'staking balance')
                   let balance = result.c[0] / 10000;
-                  this.setState({sigilStakeBalance: balance});
+                  this.setState({scaleStakeBalance: balance});
                   if (balance > 0) {
                     setInterval(() => {
                       console.log('set timeout')
@@ -98,12 +98,12 @@ class App extends Component {
                 })
             }
 
-            // Stores a given value, 5 by default. return sigilInstance.set(5,
+            // Stores a given value, 5 by default. return scaleInstance.set(5,
             // {from: accounts[0]})
           })
           .then((result) => {
             // Get the value from the contract to prove it worked. return
-            // sigilInstance   .get   .call(accounts[0])
+            // scaleInstance   .get   .call(accounts[0])
           })
           .then((result) => {
             // Update state with the result. return this.setState({storageValue:
@@ -113,15 +113,15 @@ class App extends Component {
   }
 
   startStaking = () => {
-    console.log(this.state.sigilInstance, "start staking sigil instance")
+    console.log(this.state.scaleInstance, "start staking scale instance")
     console.log("start staking", this.state.amountForStaking)
     let amount = this.state.amountForStaking * Math.pow(10,18);
     if (!isNaN(amount) && amount > 0) {
-      this.state.sigilInstance.stakeSigil(amount)
+      this.state.scaleInstance.stakeScale(amount)
       .then((result) => {
         console.log(result, 'newly staked return value')
         // let balance = result.c[0];
-        // this.setState({sigilStakeBalance: balance});
+        // this.setState({scaleStakeBalance: balance});
       })
       .catch(error => {
         console.log(error, "error")
@@ -135,10 +135,10 @@ class App extends Component {
 
   claimStake = () => {
     console.log("claim stake")
-    this.state.sigilInstance.unstake()
+    this.state.scaleInstance.unstake()
       .then((result) => {
         console.log(result, 'newly staked return value')
-        this.setState({sigilStakeBalance: 0 });
+        this.setState({scaleStakeBalance: 0 });
       })
       .catch(error => {
         console.log("mistake------")
@@ -149,9 +149,9 @@ class App extends Component {
   calculateStakingGains = () => {
     let unixTime = Math.floor(new Date() / 1000)
     console.log(unixTime, 'unix time')
-    this.state.sigilInstance.getStakingGains(unixTime)
+    this.state.scaleInstance.getStakingGains(unixTime)
     .then((result) => {
-      console.log(result, 'amount of sigil earned')
+      console.log(result, 'amount of scale earned')
       let stakeGains = result.c[0] / 10000;
       this.setState({stakeGains});
     })
@@ -160,8 +160,8 @@ class App extends Component {
     })
   }
 
-  getTotalSigilStaked = () => {
-    // this.state.sigilInstance.getInitialStakingTime()
+  getTotalScaleStaked = () => {
+    // this.state.scaleInstance.getInitialStakingTime()
     // .then((result) => {
     //   console.log(result, 'initial staking time')
     //   let stakeGains = result.c[0];
@@ -171,7 +171,7 @@ class App extends Component {
     //   console.log(error, "error")
     // })
 
-    this.state.sigilInstance.getCurrentTime()
+    this.state.scaleInstance.getCurrentTime()
     .then((result) => {
       console.log(result, 'current time')
       let stakeGains = result.c[0];
@@ -190,21 +190,21 @@ class App extends Component {
 
   render() {
     if (this.state.web3) {
-      if (this.state.sigilStakeBalance != 0) {
+      if (this.state.scaleStakeBalance != 0) {
         return (
           <div className="background">
             <div className="logoContainer">
-              <img className="logoImage" src={sigillogo}/>
+              <img className="logoImage" src={scalelogo}/>
             </div>
             <div onClick={this.calculateStakingGains} className="startStakingButton">
               <p className="buttonText">Claim Stake</p>
             </div>
-            <h1 className="headerText">Stake Your Sigil</h1>
-            <h1 className="headerText">{"Sigil balance:" + this.state.sigilBalance}
+            <h1 className="headerText">Stake Your Scale</h1>
+            <h1 className="headerText">{"Scale balance:" + this.state.scaleBalance}
             </h1>
-            <h1 className="headerText">{"Amount staked:" + this.state.sigilStakeBalance}
+            <h1 className="headerText">{"Amount staked:" + this.state.scaleStakeBalance}
             </h1>
-            <h1 className="headerText">{"Sigil Earned:" + this.state.stakeGains}
+            <h1 className="headerText">{"Scale Earned:" + this.state.stakeGains}
             </h1>
           </div>
         );
@@ -212,14 +212,14 @@ class App extends Component {
       return (
         <div className="background">
           <div className="logoContainer">
-            <img className="logoImage" src={sigillogo}/>
+            <img className="logoImage" src={scalelogo}/>
           </div>
-          <h1 className="headerText">Stake Your Sigil</h1>
+          <h1 className="headerText">Stake Your Scale</h1>
             <input onChange={this.handleStakeAmount} type="text" name="Amount To stake" placeholder="0" className="formInputStyle"/>
             <button onClick={this.startStaking} className="submitButton">Start Stake</button>
-          <h1 className="headerText">{"Sigil balance:" + this.state.sigilBalance}
+          <h1 className="headerText">{"Scale balance:" + this.state.scaleBalance}
           </h1>
-          <h1 className="headerText">{"Amount staked:" + this.state.sigilStakeBalance}
+          <h1 className="headerText">{"Amount staked:" + this.state.scaleStakeBalance}
           </h1>
         </div>
       );
@@ -233,7 +233,7 @@ class App extends Component {
     return (
       <div className="background">
         <div className="logoContainer">
-          <img className="logoImage" src={sigillogo}/>
+          <img className="logoImage" src={scalelogo}/>
         </div>
         <h1 className="headerText">Please Download Metamask</h1>
       </div>

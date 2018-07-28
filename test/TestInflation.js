@@ -1,4 +1,4 @@
-var Sigil = artifacts.require("./Sigil.sol");
+var Scale = artifacts.require("./Scale.sol");
 
 const jsonrpc = "2.0";
 const id = 0;
@@ -22,30 +22,30 @@ contract("Scale", function(accounts) {
   var stakingPercentage;
 
   it("Test that the inflation rates are accurate in the beginning", async () => {
-    let instance = await Sigil.deployed();
-    let sigilInstance = instance;
+    let instance = await Scale.deployed();
+    let scaleInstance = instance;
 
-    let poolMintRate = await sigilInstance.poolMintRate({
+    let poolMintRate = await scaleInstance.poolMintRate({
       from: accounts[0]
     });
 
-    let ownerMintRate = await sigilInstance.ownerMintRate({
+    let ownerMintRate = await scaleInstance.ownerMintRate({
       from: accounts[0]
     });
 
-    let stakingMintRate = await sigilInstance.stakingMintRate({
+    let stakingMintRate = await scaleInstance.stakingMintRate({
       from: accounts[0]
     });
 
-    poolPercentage = await sigilInstance.poolPercentage({
+    poolPercentage = await scaleInstance.poolPercentage({
       from: accounts[0]
     });
 
-    ownerPercentage = await sigilInstance.ownerPercentage({
+    ownerPercentage = await scaleInstance.ownerPercentage({
       from: accounts[0]
     });
 
-    stakingPercentage = await sigilInstance.stakingPercentage({
+    stakingPercentage = await scaleInstance.stakingPercentage({
       from: accounts[0]
     });
 
@@ -84,8 +84,8 @@ contract("Scale", function(accounts) {
   });
 
   it("Update inflation rate after 1 year", async () => {
-    let instance = await Sigil.deployed();
-    let sigilInstance = instance;
+    let instance = await Scale.deployed();
+    let scaleInstance = instance;
 
     var i;
     var percentInflation = 1.0;
@@ -109,23 +109,23 @@ contract("Scale", function(accounts) {
 
       let timeTravelPromise = await timeTravel();
 
-      let totalSupply = await sigilInstance.totalSupply({
+      let totalSupply = await scaleInstance.totalSupply({
         from: accounts[0]
       });
 
-      let inflateSigil = await sigilInstance.updateInflationRate({
+      let inflateScale = await scaleInstance.updateInflationRate({
         from: accounts[0]
       });
 
-      let poolMintRate = await sigilInstance.poolMintRate({
+      let poolMintRate = await scaleInstance.poolMintRate({
         from: accounts[0]
       });
 
-      let ownerMintRate = await sigilInstance.ownerMintRate({
+      let ownerMintRate = await scaleInstance.ownerMintRate({
         from: accounts[0]
       });
 
-      let stakingMintRate = await sigilInstance.stakingMintRate({
+      let stakingMintRate = await scaleInstance.stakingMintRate({
         from: accounts[0]
       });
 

@@ -1,12 +1,12 @@
-var Sigil = artifacts.require("./Sigil.sol");
+var Scale = artifacts.require("./Scale.sol");
 
 contract("Scale", function(accounts) {
-  it("Test initial Sigil supply:", async () => {
-    let instance = await Sigil.deployed();
+  it("Test initial Scale supply:", async () => {
+    let instance = await Scale.deployed();
 
-    let sigilInstance = instance;
+    let scaleInstance = instance;
 
-    ownerBalance = await sigilInstance.balanceOf(accounts[0], {
+    ownerBalance = await scaleInstance.balanceOf(accounts[0], {
       from: accounts[0]
     });
 

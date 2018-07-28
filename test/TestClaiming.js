@@ -1,4 +1,4 @@
-var Sigil = artifacts.require("./Sigil.sol");
+var Scale = artifacts.require("./Scale.sol");
 
 const jsonrpc = "2.0";
 const id = 0;
@@ -13,18 +13,18 @@ const timeTravel = async seconds => {
 
 contract("Scale", function(accounts) {
   it("Test the owner claim after 1 day of minting", async () => {
-    let instance = await Sigil.deployed();
-    let sigilInstance = instance;
+    let instance = await Scale.deployed();
+    let scaleInstance = instance;
 
     let secondsInADay = 86400;
-    let ownerMintRate = await sigilInstance.ownerMintRate({
+    let ownerMintRate = await scaleInstance.ownerMintRate({
       from: accounts[0]
     });
 
     // Adjust for decimal places
     ownerMintRate = ownerMintRate.toNumber() / Math.pow(10, 18);
 
-    var expectedOwnerBalance = await sigilInstance.balanceOf(accounts[0], {
+    var expectedOwnerBalance = await scaleInstance.balanceOf(accounts[0], {
       from: accounts[0]
     });
 
@@ -34,12 +34,12 @@ contract("Scale", function(accounts) {
     let timeTravelPromise = await timeTravel(secondsInADay);
 
     // Owner claims 1 day's worth of coins
-    let ownerClaim = await sigilInstance.ownerClaim({
+    let ownerClaim = await scaleInstance.ownerClaim({
       from: accounts[0]
     });
 
     // Check new owner balance
-    var ownerBalance = await sigilInstance.balanceOf(accounts[0], {
+    var ownerBalance = await scaleInstance.balanceOf(accounts[0], {
       from: accounts[0]
     });
 
@@ -49,11 +49,11 @@ contract("Scale", function(accounts) {
   });
 
   it("Test the pool claim after 1 day of minting", async () => {
-    let instance = await Sigil.deployed();
-    let sigilInstance = instance;
+    let instance = await Scale.deployed();
+    let scaleInstance = instance;
 
     let secondsInADay = 86400;
-    let poolMintRate = await sigilInstance.poolMintRate({
+    let poolMintRate = await scaleInstance.poolMintRate({
       from: accounts[0]
     });
 
@@ -61,12 +61,12 @@ contract("Scale", function(accounts) {
     poolMintRate = poolMintRate.toNumber() / Math.pow(10, 18);
 
     // Attempting to mint to the pool before setting it should revert
-    // let failedPoolMint = await sigilInstance.poolIssue({
+    // let failedPoolMint = await scaleInstance.poolIssue({
     //   from: accounts[8]
     // });
 
     // Owner sets the pool
-    let setPool = await sigilInstance.setPool(accounts[1], {
+    let setPool = await scaleInstance.setPool(accounts[1], {
       from: accounts[0]
     });
 
@@ -74,12 +74,12 @@ contract("Scale", function(accounts) {
     expectedPoolBalance = secondsInADay * poolMintRate;
 
     // Anyone can issue to the pool
-    let poolClaim = await sigilInstance.poolIssue({
+    let poolClaim = await scaleInstance.poolIssue({
       from: accounts[8]
     });
 
     // Check new pool
-    var poolBalance = await sigilInstance.balanceOf(accounts[1], {
+    var poolBalance = await scaleInstance.balanceOf(accounts[1], {
       from: accounts[1]
     });
 
