@@ -476,35 +476,48 @@ contract Scale is MintableToken, HasNoEther {
     function stakeScale(uint _stakeAmount) external {
 
         // Require that tokens are staked successfully
-        require(stake(_stakeAmount));
+        require(stake(msg.sender, _stakeAmount));
+    }
+
+    // @dev stake for a seperate user
+    function stakeFor(address _user, uint _amount) external {
+
+      // You can only stake tokens for another user if they have not already staked tokens
+      require(stakeBalances[_user].stakeBalance == 0);
+
+      // Transfer Scale from to the user
+      transfer( _user, _amount);
+
+      // Stake for the user
+      stake(_user, _amount);
     }
 
     /// @dev stake function reduces the user's total available balance and adds it to their staking balance
     /// @param _value how many tokens a user wants to stake
-    function stake(uint256 _value) private returns (bool success) {
+    function stake(address _user, uint256 _value) private returns (bool success) {
 
         // You can only stake as many tokens as you have
-        require(_value <= balances[msg.sender]);
+        require(_value <= balances[_user]);
         // You can only stake tokens if you have not already staked tokens
-        require(stakeBalances[msg.sender].stakeBalance == 0);
+        require(stakeBalances[_user].stakeBalance == 0);
 
         // Subtract stake amount from regular token balance
-        balances[msg.sender] = balances[msg.sender].sub(_value);
+        balances[_user] = balances[_user].sub(_value);
 
         // Add stake amount to staked balance
-        stakeBalances[msg.sender].stakeBalance = _value;
+        stakeBalances[_user].stakeBalance = _value;
 
         // Increment the staking staked tokens value
         totalScaleStaked = totalScaleStaked.add(_value);
 
         // Save the time that the stake started
-        stakeBalances[msg.sender].initialStakeTime = now.div(timingVariable);
+        stakeBalances[_user].initialStakeTime = now.div(timingVariable);
 
         // Set the new staking history
         setTotalStakingHistory();
 
         // Fire an event to tell the world of the newly staked tokens
-        emit Stake(msg.sender, _value);
+        emit Stake(_user, _value);
 
         return true;
     }
@@ -724,6 +737,20 @@ contract Scale is MintableToken, HasNoEther {
     function calculateMintTotal(uint _timeInSeconds, uint _mintRate) pure private returns(uint mintAmount) {
         // Calculates the amount of tokens to mint based upon the number of seconds passed
         return(_timeInSeconds.mul(_mintRate));
+    }
+
+    function getNow() view external returns (uint) {
+
+      return now;
+    }
+
+    function updateTotalStakingHistory() external {
+
+      // Get now in terms of the variable staking accuracy (days in Scale's case)
+      uint _nowAsTimingVariable = now.div(timingVariable);
+
+      // Set the totalStakingHistory as a timestamp of the totalScaleStaked today
+      totalStakingHistory[_nowAsTimingVariable] = totalScaleStaked;
     }
 
 }

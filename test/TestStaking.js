@@ -1,5 +1,5 @@
 // IMPORTANT
-// To test staking you must implement these two functions in the solidity contract
+// To test staking you must implement these two functions in the solidity contracts
 // function getNow() view external returns (uint) {
 //
 //   return now;
@@ -66,11 +66,11 @@ contract("Scale", async accounts => {
 
     let stakeScale = await scaleInstance.stakeScale(1, { from: accounts[0] });
 
-    let transferScale = await scaleInstance.transfer(accounts[1], 1, {
+    let stakeFor = await scaleInstance.stakeFor(accounts[1], 1, {
       from: accounts[0]
     });
 
-    let transferScale3 = await scaleInstance.transfer(accounts[2], 1, {
+    let transferScale2 = await scaleInstance.transfer(accounts[2], 1, {
       from: accounts[0]
     });
 
@@ -80,10 +80,6 @@ contract("Scale", async accounts => {
 
     scaleStakingRate = await scaleInstance.stakingMintRate.call({
       from: accounts[0]
-    });
-
-    let stakeScale2 = await scaleInstance.stakeScale(1, {
-      from: accounts[1]
     });
 
     let timeTravelPromise = await timeTravel(1);
