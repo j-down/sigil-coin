@@ -739,18 +739,4 @@ contract Scale is MintableToken, HasNoEther {
         return(_timeInSeconds.mul(_mintRate));
     }
 
-    function getNow() view external returns (uint) {
-
-      return now;
-    }
-
-    function updateTotalStakingHistory() external {
-
-      // Get now in terms of the variable staking accuracy (days in Scale's case)
-      uint _nowAsTimingVariable = now.div(timingVariable);
-
-      // Set the totalStakingHistory as a timestamp of the totalScaleStaked today
-      totalStakingHistory[_nowAsTimingVariable] = totalScaleStaked;
-    }
-
 }
