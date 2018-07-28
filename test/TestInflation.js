@@ -76,6 +76,12 @@ contract("Scale", function(accounts) {
       "Calculated Staking Percentage: " + calculatedStakingPercentage
     );
 
+    let setPool = await scaleInstance.setPool(accounts[1], {
+      from: accounts[0]
+    });
+
+    let stakeScale = await scaleInstance.stakeScale(1, { from: accounts[0] });
+
     assert(
       stakingPercentage.toFixed(2) == calculatedStakingPercentage.toFixed(2) &&
         poolPercentage.toFixed(2) == calculatedPoolPercentage.toFixed(2) &&
@@ -90,32 +96,46 @@ contract("Scale", function(accounts) {
     var i;
     var percentInflation = 1.0;
 
+    let timeTravelPromise = await timeTravel();
+
     // Test for 25 years
     // Start deflating by 0.005% after year 5 and will stop inflation rate decreases at 1%
     for (i = 0; i < 25; i++) {
       let yearsPassed = i + 1;
 
       console.log(
-        "------------ " + yearsPassed + " Year Passed ----------------"
+        "------------ " + yearsPassed + " Years Passed ----------------"
       );
 
-      if (percentInflation > 0.1) {
-        percentInflation -= 0.15;
-      } else {
-        if (percentInflation > 0.01) {
-          percentInflation -= 0.005;
-        }
-      }
+      // -- Claim and update total Supply
+      let ownerClaim = await scaleInstance.ownerClaim({
+        from: accounts[0]
+      });
 
-      let timeTravelPromise = await timeTravel();
+      let poolClaim = await scaleInstance.poolIssue({
+        from: accounts[8]
+      });
+
+      let unstakeScale = await scaleInstance.unstake({ from: accounts[0] });
+
+      let stakeScale = await scaleInstance.stakeScale(1, { from: accounts[0] });
 
       let totalSupply = await scaleInstance.totalSupply({
         from: accounts[0]
       });
 
+      // Update rates
       let inflateScale = await scaleInstance.updateInflationRate({
         from: accounts[0]
       });
+
+      if (percentInflation > 0.1) {
+        percentInflation -= 0.3;
+      } else {
+        if (percentInflation > 0.01) {
+          percentInflation -= 0.005;
+        }
+      }
 
       let poolMintRate = await scaleInstance.poolMintRate({
         from: accounts[0]
@@ -158,6 +178,14 @@ contract("Scale", function(accounts) {
       console.log(
         "Expected Staking Mint Inflation Rate: " + oldStakingMintRate.toFixed(5)
       );
+      console.log("--------------------------------");
+
+      console.log("Total Supply Now: " + totalSupply);
+      let totalCoins =
+        poolMintRate * 31536000 +
+        ownerMintRate * 31536000 +
+        stakingMintRate * 31536000;
+      console.log("Total Coins to be Minted this Year: " + totalCoins);
 
       console.log("-----------------------------");
 
@@ -166,6 +194,8 @@ contract("Scale", function(accounts) {
           ownerMintRate.toFixed(5) == oldOwnerMintRate.toFixed(5) &&
           stakingMintRate.toFixed(5) == oldStakingMintRate.toFixed(5)
       );
+
+      let timeTravelPromise = await timeTravel();
     }
   });
 });

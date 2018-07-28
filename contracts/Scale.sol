@@ -396,7 +396,7 @@ contract Scale is MintableToken, HasNoEther {
         owner = msg.sender;
 
         // Assign initial owner supply
-        uint _initOwnerSupply = 8000000 ether;
+        uint _initOwnerSupply = 10000000 ether;
         // Mint given to owner only one-time
         bool _success = mint(msg.sender, _initOwnerSupply);
         // Require minting success
@@ -438,7 +438,7 @@ contract Scale is MintableToken, HasNoEther {
       // Decrease inflation rate by 15% each year
       if (inflationRate > 100) {
 
-        inflationRate = inflationRate.sub(150);
+        inflationRate = inflationRate.sub(300);
       }
       // Inflation rate reaches 10%. Decrease inflation rate by 0.5% from here on out until it reaches 1%.
       else if (inflationRate > 10) {
