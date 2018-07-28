@@ -50,11 +50,11 @@ contract("Scale", async accounts => {
 
     var address;
 
-    // for (address = 1; address < 99; address++) {
-    //   let transferScale = await scaleInstance.transfer(accounts[address], 1, {
-    //     from: accounts[0]
-    //   });
-    // }
+    for (address = 1; address < 99; address++) {
+      let transferScale = await scaleInstance.transfer(accounts[address], 1, {
+        from: accounts[0]
+      });
+    }
 
     scaleStakingRate = await scaleInstance.stakingMintRate.call({
       from: accounts[0]
@@ -72,117 +72,13 @@ contract("Scale", async accounts => {
     let timeTravelPromise = await timeTravel(1);
   });
 
-  it("100 days", async () => {
-    let instance = await Scale.deployed();
-    let scaleInstance = instance;
-
-    var i;
-
-    for (i = 0; i < 100; i++) {
-      console.log("--------- Days passed " + daysPassed + "----------");
-      let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
-
-      var d = new Date(0);
-
-      d.setUTCSeconds(currentTime);
-      console.log("--- Current date: " + d);
-
-      let updateHistory = await scaleInstance.updateTotalStakingHistory({
-        from: accounts[0]
-      });
-      let timeTravelPromise = await timeTravel(1);
-    }
-  });
-
-  it("100 days", async () => {
-    let instance = await Scale.deployed();
-    let scaleInstance = instance;
-
-    var i;
-
-    for (i = 0; i < 100; i++) {
-      console.log("--------- Days passed " + daysPassed + "----------");
-      let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
-
-      var d = new Date(0);
-
-      d.setUTCSeconds(currentTime);
-      console.log("--- Current date: " + d);
-
-      let updateHistory = await scaleInstance.updateTotalStakingHistory({
-        from: accounts[0]
-      });
-      let timeTravelPromise = await timeTravel(1);
-    }
-  });
-
-  it("100 days", async () => {
-    let instance = await Scale.deployed();
-    let scaleInstance = instance;
-
-    var i;
-
-    for (i = 0; i < 100; i++) {
-      console.log("--------- Days passed " + daysPassed + "----------");
-      let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
-
-      var d = new Date(0);
-
-      d.setUTCSeconds(currentTime);
-      console.log("--- Current date: " + d);
-
-      let updateHistory = await scaleInstance.updateTotalStakingHistory({
-        from: accounts[0]
-      });
-      let timeTravelPromise = await timeTravel(1);
-    }
-  });
-
-  it("100 days and unstake", async () => {
-    let instance = await Scale.deployed();
-    let scaleInstance = instance;
-
-    var i;
-
-    for (i = 0; i < 100; i++) {
-      console.log("--------- Days passed " + daysPassed + "----------");
-      let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
-
-      var d = new Date(0);
-
-      d.setUTCSeconds(currentTime);
-      console.log("--- Current date: " + d);
-
-      let updateHistory = await scaleInstance.updateTotalStakingHistory({
-        from: accounts[0]
-      });
-      let timeTravelPromise = await timeTravel(1);
-    }
-
-    let unstakeScale = await scaleInstance.unstake({
-      from: accounts[0]
-    });
-
-    let balance = await scaleInstance.balanceOf(accounts[0], {
-      from: accounts[0]
-    });
-
-    var finalBalance = balance.toNumber() / Math.pow(10, 18);
-
-    console.log(finalBalance);
-
-    //Make sure only a year's worth of Sigil was given;
-    assert(finalBalance <= 10000000);
-  });
-
-  // it("Testing for unstaking and unstaking", async () => {
+  // it("100 days", async () => {
   //   let instance = await Scale.deployed();
   //   let scaleInstance = instance;
   //
   //   var i;
   //
-  //   for (i = 1; i <= 150; i++) {
-  //
+  //   for (i = 0; i < 100; i++) {
   //     console.log("--------- Days passed " + daysPassed + "----------");
   //     let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
   //
@@ -191,27 +87,130 @@ contract("Scale", async accounts => {
   //     d.setUTCSeconds(currentTime);
   //     console.log("--- Current date: " + d);
   //
-  //     if (i < 99) {
-  //       let stakeScale = await scaleInstance.stakeScale(1, {
-  //         from: accounts[i]
-  //       });
-  //     } else if (i >= 99 && i < 198) {
-  //       let useCase = i + 1;
-  //       let unstakeScale = await scaleInstance.unstake({
-  //         from: accounts[useCase % 99]
-  //       });
-  //     } else if (i >= 198 && i < 297) {
-  //       let useCase = i + 2;
-  //       let stakeScale = await scaleInstance.stakeScale(1, {
-  //         from: accounts[useCase % 99]
-  //       });
-  //     } else {
-  //       let useCase = i + 3;
-  //       let unstakeScale = await scaleInstance.unstake({
-  //         from: accounts[useCase % 99]
-  //       });
-  //     }
+  //     let updateHistory = await scaleInstance.updateTotalStakingHistory({
+  //       from: accounts[0]
+  //     });
   //     let timeTravelPromise = await timeTravel(1);
   //   }
   // });
+  //
+  // it("100 days", async () => {
+  //   let instance = await Scale.deployed();
+  //   let scaleInstance = instance;
+  //
+  //   var i;
+  //
+  //   for (i = 0; i < 100; i++) {
+  //     console.log("--------- Days passed " + daysPassed + "----------");
+  //     let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
+  //
+  //     var d = new Date(0);
+  //
+  //     d.setUTCSeconds(currentTime);
+  //     console.log("--- Current date: " + d);
+  //
+  //     let updateHistory = await scaleInstance.updateTotalStakingHistory({
+  //       from: accounts[0]
+  //     });
+  //     let timeTravelPromise = await timeTravel(1);
+  //   }
+  // });
+  //
+  // it("100 days", async () => {
+  //   let instance = await Scale.deployed();
+  //   let scaleInstance = instance;
+  //
+  //   var i;
+  //
+  //   for (i = 0; i < 100; i++) {
+  //     console.log("--------- Days passed " + daysPassed + "----------");
+  //     let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
+  //
+  //     var d = new Date(0);
+  //
+  //     d.setUTCSeconds(currentTime);
+  //     console.log("--- Current date: " + d);
+  //
+  //     let updateHistory = await scaleInstance.updateTotalStakingHistory({
+  //       from: accounts[0]
+  //     });
+  //     let timeTravelPromise = await timeTravel(1);
+  //   }
+  // });
+  //
+  // it("100 days and unstake", async () => {
+  //   let instance = await Scale.deployed();
+  //   let scaleInstance = instance;
+  //
+  //   var i;
+  //
+  //   for (i = 0; i < 100; i++) {
+  //     console.log("--------- Days passed " + daysPassed + "----------");
+  //     let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
+  //
+  //     var d = new Date(0);
+  //
+  //     d.setUTCSeconds(currentTime);
+  //     console.log("--- Current date: " + d);
+  //
+  //     let updateHistory = await scaleInstance.updateTotalStakingHistory({
+  //       from: accounts[0]
+  //     });
+  //     let timeTravelPromise = await timeTravel(1);
+  //   }
+  //
+  //   let unstakeScale = await scaleInstance.unstake({
+  //     from: accounts[0]
+  //   });
+  //
+  //   let balance = await scaleInstance.balanceOf(accounts[0], {
+  //     from: accounts[0]
+  //   });
+  //
+  //   var finalBalance = balance.toNumber() / Math.pow(10, 18);
+  //
+  //   console.log(finalBalance);
+  //
+  //   //Make sure only a year's worth of Sigil was given;
+  //   assert(finalBalance <= 10000000);
+  // });
+
+  it("Testing for unstaking and unstaking", async () => {
+    let instance = await Scale.deployed();
+    let scaleInstance = instance;
+
+    var i;
+
+    for (i = 1; i <= 150; i++) {
+      console.log("--------- Days passed " + daysPassed + "----------");
+      let currentTime = await scaleInstance.getNow.call({ from: accounts[0] });
+
+      var d = new Date(0);
+
+      d.setUTCSeconds(currentTime);
+      console.log("--- Current date: " + d);
+
+      if (i < 99) {
+        let stakeScale = await scaleInstance.stakeScale(1, {
+          from: accounts[i]
+        });
+      } else if (i >= 99 && i < 198) {
+        let useCase = i + 1;
+        let unstakeScale = await scaleInstance.unstake({
+          from: accounts[useCase % 99]
+        });
+      } else if (i >= 198 && i < 297) {
+        let useCase = i + 2;
+        let stakeScale = await scaleInstance.stakeScale(1, {
+          from: accounts[useCase % 99]
+        });
+      } else {
+        let useCase = i + 3;
+        let unstakeScale = await scaleInstance.unstake({
+          from: accounts[useCase % 99]
+        });
+      }
+      let timeTravelPromise = await timeTravel(1);
+    }
+  });
 });

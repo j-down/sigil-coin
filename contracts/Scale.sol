@@ -479,7 +479,7 @@ contract Scale is MintableToken, HasNoEther {
         require(stake(msg.sender, _stakeAmount));
     }
 
-    // @dev stake for a seperate user
+    // @dev stake for a seperate address
     function stakeFor(address _user, uint _amount) external {
 
       // You can only stake tokens for another user if they have not already staked tokens
