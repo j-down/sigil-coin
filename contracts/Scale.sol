@@ -368,6 +368,7 @@ contract Scale is MintableToken, HasNoEther {
     struct AddressStakeData {
         uint stakeBalance;
         uint initialStakeTime;
+        mapping (uint => uint) stakePerDay;
     }
 
     // Track all tokens staked
@@ -386,6 +387,8 @@ contract Scale is MintableToken, HasNoEther {
     // Fired when tokens are unstaked
     event Unstake(address indexed unstaker, uint256 stakedAmount, uint256 stakingGains);
 
+
+    event Testing(uint value);
     //////////////////////////////////////////////////
     /// Scale Token Functionality
     //////////////////////////////////////////////////
@@ -482,37 +485,45 @@ contract Scale is MintableToken, HasNoEther {
     // @dev stake for a seperate address
     function stakeFor(address _user, uint _amount) external {
 
-      // You can only stake tokens for another user if they have not already staked tokens
-      require(stakeBalances[_user].stakeBalance == 0);
-
       // Transfer Scale from to the user
-      transfer( _user, _amount);
+      transfer(_user, _amount);
 
       // Stake for the user
       stake(_user, _amount);
     }
-
+    
     /// @dev stake function reduces the user's total available balance and adds it to their staking balance
     /// @param _value how many tokens a user wants to stake
     function stake(address _user, uint256 _value) private returns (bool success) {
 
         // You can only stake as many tokens as you have
         require(_value <= balances[_user]);
-        // You can only stake tokens if you have not already staked tokens
-        require(stakeBalances[_user].stakeBalance == 0);
+
+        // Now as a day
+        uint _nowAsDay = now.div(timingVariable);
+        // 
+        uint _newStakeBalance = stakeBalances[_user].stakeBalance.add(_value);
+
+        // If this is the initial stake time, save
+        if (stakeBalances[_user].stakeBalance == 0) {
+          // Save the time that the stake started
+          stakeBalances[_user].initialStakeTime = _nowAsDay;
+        }
 
         // Subtract stake amount from regular token balance
         balances[_user] = balances[_user].sub(_value);
 
         // Add stake amount to staked balance
-        stakeBalances[_user].stakeBalance = _value;
+        stakeBalances[_user].stakeBalance = _newStakeBalance;
+
+        // Assign the total amount staked at this day
+        stakeBalances[_user].stakePerDay[_nowAsDay] = _newStakeBalance;
 
         // Increment the staking staked tokens value
         totalScaleStaked = totalScaleStaked.add(_value);
 
-        // Save the time that the stake started
-        stakeBalances[_user].initialStakeTime = now.div(timingVariable);
-
+        // possibly store array of stake times for itterating through later
+        
         // Set the new staking history
         setTotalStakingHistory();
 
@@ -569,9 +580,9 @@ contract Scale is MintableToken, HasNoEther {
         return true;
     }
 
-    // @dev Helper function to claimStake that modularizes the minting via staking calculation
-    // @param _now when the user stopped staking. Passed in as a variable to allow for checking without using gas from the getStakingGains function.
-    // @return uint for total coins to be minted
+    /// @dev Helper function to claimStake that modularizes the minting via staking calculation
+    /// @param _now when the user stopped staking. Passed in as a variable to allow for checking without using gas from the getStakingGains function.
+    /// @return uint for total coins to be minted
     function calculateStakeGains(uint _now) view private returns (uint mintTotal)  {
 
       uint _nowAsTimingVariable = _now.div(timingVariable);    // Today as a unique value in unix time
@@ -579,27 +590,57 @@ contract Scale is MintableToken, HasNoEther {
       uint _timePassedSinceStakeInVariable = _nowAsTimingVariable.sub(_initialStakeTimeInVariable); // How much time has passed, in days, since the user started staking.
       uint _stakePercentages = 0; // Keeps an additive track of the user's staking percentages over time
       uint _tokensToMint = 0; // How many new Scale tokens to create
-      uint _lastUsedVariable;  // Last day the totalScaleStaked was updated
-
+      uint _lastDayStakeWasUpdated;  // Last day the totalScaleStaked was updated
+      uint _lastStakeDay; // Last day that the user staked
+      
+      
       // Average this msg.sender's relative percentage ownership of totalScaleStaked throughout each day since they started staking
       for (uint i = _initialStakeTimeInVariable; i < _nowAsTimingVariable; i++) {
 
-        // If the day exists add it to the percentages
-        if (totalStakingHistory[i] != 0) {
+        // Total amount user has staked on day 
+        uint _stakeForDay = stakeBalances[msg.sender].stakePerDay[i];
 
-           // If the day does exist add it to the number to be later averaged as a total average percentage of total staking
-          _stakePercentages = _stakePercentages.add(calculateFraction(stakeBalances[msg.sender].stakeBalance, totalStakingHistory[i], decimals));
+        emit Testing(stakeBalances[msg.sender].stakePerDay[i]);
+         
+        // if this was a day that the user staked or added stake 
+        if (_stakeForDay != 0) {
 
-          // Set this as the last day someone staked
-          _lastUsedVariable = totalStakingHistory[i];
-        }
+            // If the day exists add it to the percentages
+            if (totalStakingHistory[i] != 0) {
+
+                // If the day does exist add it to the number to be later averaged as a total average percentage of total staking
+                _stakePercentages = _stakePercentages.add(calculateFraction(_stakeForDay, totalStakingHistory[i], decimals));
+
+                // Set this as the last day someone staked
+                _lastDayStakeWasUpdated = totalStakingHistory[i];
+            }
+            else {
+                // Use the last day found in the totalStakingHistory mapping
+                _stakePercentages = _stakePercentages.add(calculateFraction(_stakeForDay, _lastDayStakeWasUpdated, decimals));
+            }
+
+            _lastStakeDay = _stakeForDay;
+        } 
         else {
 
-          // Use the last day found in the totalStakingHistory mapping
-          _stakePercentages = _stakePercentages.add(calculateFraction(stakeBalances[msg.sender].stakeBalance, _lastUsedVariable, decimals));
+            // If the day exists add it to the percentages
+            if (totalStakingHistory[i] != 0) {
+
+                // If the day does exist add it to the number to be later averaged as a total average percentage of total staking
+                _stakePercentages = _stakePercentages.add(calculateFraction(_lastStakeDay, totalStakingHistory[i], decimals));
+
+                // Set this as the last day someone staked
+                _lastDayStakeWasUpdated = totalStakingHistory[i];
+            }
+            else {
+                // Use the last day found in the totalStakingHistory mapping
+                _stakePercentages = _stakePercentages.add(calculateFraction(_lastStakeDay, _lastDayStakeWasUpdated, decimals));
+            }
         }
 
       }
+
+      
 
         // Get the account's average percentage staked of the total stake over the course of all days they have been staking
         uint _stakePercentageAverage = calculateFraction(_stakePercentages, _timePassedSinceStakeInVariable, 0);
@@ -737,6 +778,22 @@ contract Scale is MintableToken, HasNoEther {
     function calculateMintTotal(uint _timeInSeconds, uint _mintRate) pure private returns(uint mintAmount) {
         // Calculates the amount of tokens to mint based upon the number of seconds passed
         return(_timeInSeconds.mul(_mintRate));
+    }
+
+    // functions for testing purposes only 
+
+    function getNow() view external returns (uint) {
+
+        return now;
+    }
+
+    function updateTotalStakingHistory() external {
+
+        // Get now in terms of the variable staking accuracy (days in Scale's case)
+        uint _nowAsTimingVariable = now.div(timingVariable);
+
+        // Set the totalStakingHistory as a timestamp of the totalScaleStaked today
+        totalStakingHistory[_nowAsTimingVariable] = totalScaleStaked;
     }
 
 }
