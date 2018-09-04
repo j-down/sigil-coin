@@ -368,6 +368,7 @@ contract Scale is MintableToken, HasNoEther {
     struct AddressStakeData {
         uint stakeBalance;
         uint initialStakeTime;
+        uint lastStakeTime;
         mapping (uint => uint) stakePerDay;
     }
 
@@ -509,6 +510,8 @@ contract Scale is MintableToken, HasNoEther {
           // Save the time that the stake started
           stakeBalances[_user].initialStakeTime = _nowAsDay;
         }
+        // Update the last time the user has staked
+        stakeBalances[_user].lastStakeTime = _nowAsDay;
 
         // Subtract stake amount from regular token balance
         balances[_user] = balances[_user].sub(_value);
@@ -554,7 +557,7 @@ contract Scale is MintableToken, HasNoEther {
         require(stakeBalances[msg.sender].stakeBalance > 0);
 
         // Require that at least 7 timing variables have passed (days)
-        require(now.div(timingVariable).sub(stakeBalances[msg.sender].initialStakeTime) >= 7);
+        require(now.div(timingVariable).sub(stakeBalances[msg.sender].lastStakeTime) >= 30);
 
         // Calculate tokens to mint
         uint _tokensToMint = calculateStakeGains(now);
@@ -599,8 +602,6 @@ contract Scale is MintableToken, HasNoEther {
 
         // Total amount user has staked on day 
         uint _stakeForDay = stakeBalances[msg.sender].stakePerDay[i];
-
-        emit Testing(stakeBalances[msg.sender].stakePerDay[i]);
          
         // if this was a day that the user staked or added stake 
         if (_stakeForDay != 0) {
